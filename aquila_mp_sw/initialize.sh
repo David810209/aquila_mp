@@ -3,7 +3,7 @@ export RISCV=/opt/riscv
 cd elibc
 make
 cd ../ocr_2core
-make
+./build.sh
 cd ../uartboot
 make
 cd ..
