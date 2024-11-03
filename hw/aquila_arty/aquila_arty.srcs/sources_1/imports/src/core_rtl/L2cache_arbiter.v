@@ -93,6 +93,8 @@ module L2cache_arbiter #(
 
     localparam M_IDLE = 0, // wait for strobe
                M_WAIT = 1, // wait for rd data readed from ddr
+
+               //可刪
                M_DONE = 2; // delay one cycle, 'cause we need to reorder
                            // the readed data (for timing improvement)
 
@@ -105,7 +107,7 @@ module L2cache_arbiter #(
     reg                      S_DMEM_rw_r;
     reg  [CLSIZE-1 : 0]      S_DMEM_data_r;
     
-    reg  S_DMEM_SEC_strobe;
+    reg  S_DMEM_SEC_strobe; //沒用？
     reg  S_DMEM_RdfromOther;
 
     // input selection signals
@@ -130,53 +132,88 @@ module L2cache_arbiter #(
     //  Keep the strobe (in case we miss strobe)
     //=======================================================
     // I-MEM slave interface (read only)
+
+//這樣比較好看
+// 存IMEM strobe和addr的reg
+//    always @(posedge clk_i) begin
+//        if (rst_i) begin 
+//            S_IMEM_strobe_r <= 0;
+//            S_IMEM_addr_r <= 0;
+//        end
+//        else if (S_IMEM_strobe_i) begin
+//            S_IMEM_strobe_r <= 1;
+//             S_IMEM_addr_r <= S_IMEM_addr_i;
+//        end
+//        else if (S_IMEM_done_o)
+//            S_IMEM_strobe_r <= 0; // Clear the strobe
+//    end
+
+     always @(posedge clk_i) begin
+         if (rst_i)
+             S_IMEM_strobe_r <= 0;
+         else if (S_IMEM_strobe_i)
+             S_IMEM_strobe_r <= 1;
+         else if (S_IMEM_done_o)
+             S_IMEM_strobe_r <= 0; // Clear the strobe
+     end
+
     always @(posedge clk_i) begin
-        if (rst_i)
-            S_IMEM_strobe_r <= 0;
-        else if (S_IMEM_strobe_i)
-            S_IMEM_strobe_r <= 1;
-        else if (S_IMEM_done_o)
-            S_IMEM_strobe_r <= 0; // Clear the strobe
-    end
+         if (rst_i)
+             S_IMEM_addr_r <= 0;
+         else if (S_IMEM_strobe_i)
+             S_IMEM_addr_r <= S_IMEM_addr_i;
+     end
 
-   always @(posedge clk_i) begin
-        if (rst_i)
-            S_IMEM_addr_r <= 0;
-        else if (S_IMEM_strobe_i)
-            S_IMEM_addr_r <= S_IMEM_addr_i;
-    end
 
+//這樣比較好看
+// 存DMEM strobe和addr的reg
     // D-MEM slave interface
-    always @(posedge clk_i) begin
-        if (rst_i)
-            S_DMEM_strobe_r <= 0;
-        else if (S_DMEM_strobe_i)
-            S_DMEM_strobe_r <= 1;
-        else if (S_DMEM_done_o && !S_DMEM_RdfromOther)
-            S_DMEM_strobe_r <= 0;
-    end
+//    always @(posedge clk_i) begin
+//        if (rst_i) begin
+//            S_DMEM_strobe_r <= 0;
+//            S_DMEM_addr_r <= 0;
+//            S_DMEM_rw_r <= 0;
+//            S_DMEM_data_r <= 0;
+//        end
+//        else if (S_DMEM_strobe_i) begin
+//            S_DMEM_strobe_r <= 1;
+//            S_DMEM_addr_r <= S_DMEM_addr_i;
+//            S_DMEM_rw_r <= S_DMEM_rw_i;
+//            S_DMEM_data_r <= S_DMEM_data_i;
+//        end
+//        else if (S_DMEM_done_o && !S_DMEM_RdfromOther)
+//            S_DMEM_strobe_r <= 0;
+//    end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             S_DMEM_strobe_r <= 0;
+         else if (S_DMEM_strobe_i)
+             S_DMEM_strobe_r <= 1;
+         else if (S_DMEM_done_o && !S_DMEM_RdfromOther)
+             S_DMEM_strobe_r <= 0;
+     end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             S_DMEM_addr_r <= 0;
+         else if (S_DMEM_strobe_i)
+             S_DMEM_addr_r <= S_DMEM_addr_i;
+     end
 
-    always @(posedge clk_i) begin
-        if (rst_i)
-            S_DMEM_addr_r <= 0;
-        else if (S_DMEM_strobe_i)
-            S_DMEM_addr_r <= S_DMEM_addr_i;
-    end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             S_DMEM_rw_r <= 0;
+         else if (S_DMEM_strobe_i)
+             S_DMEM_rw_r <= S_DMEM_rw_i;
+     end
 
-    always @(posedge clk_i) begin
-        if (rst_i)
-            S_DMEM_rw_r <= 0;
-        else if (S_DMEM_strobe_i)
-            S_DMEM_rw_r <= S_DMEM_rw_i;
-    end
-
-    always @(posedge clk_i) begin
-        if (rst_i)
-            S_DMEM_data_r <= 0;
-        else if (S_DMEM_strobe_i)
-            S_DMEM_data_r <= S_DMEM_data_i;
-    end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             S_DMEM_data_r <= 0;
+         else if (S_DMEM_strobe_i)
+             S_DMEM_data_r <= S_DMEM_data_i;
+     end
     
+    //沒用？？//////////////////////////////////
     always @(posedge clk_i) begin
         if (rst_i)
             S_DMEM_SEC_strobe <= 0;
@@ -185,6 +222,9 @@ module L2cache_arbiter #(
         else if (c_state == M_IDLE)
             S_DMEM_SEC_strobe <= 0;
     end
+    ///////////////
+
+    //如果cache要從其他core直接毒data，就要把來自L2 cache的 L2 ready關掉
     always @(posedge clk_i) begin
         if (rst_i)
             S_DMEM_RdfromOther <= 0;
@@ -205,6 +245,28 @@ module L2cache_arbiter #(
             sel = 0;
     end
 
+    //這樣比較好看
+    //用sel來選要用i的還是d的 addr, rw, wdata
+
+    // always @(*) begin
+    //     case (sel)
+    //         I_STROBE: begin
+    //              addr = S_IMEM_addr_r;
+    //              rw = 0; // I-MEM is read-only
+    //              wdata = 0; // I-MEM is read-only
+    //         end
+    //         D_STROBE: begin
+    //              addr = S_DMEM_addr_r;
+    //               rw = S_DMEM_rw_r;
+    //               wdata = S_DMEM_data_r;
+    //         end
+    //         default : begin 
+    //              addr = 0;
+    //              rw = 0;
+    //              wdata = {CLSIZE{1'b0}};
+    //         end
+    //     endcase
+    // end
     always @(*) begin
         case (sel)
             I_STROBE: addr = S_IMEM_addr_r;
@@ -232,40 +294,60 @@ module L2cache_arbiter #(
     //============================================================================
     //  Register selected strobe's signals in IDLE state (for timing improvement)
     //============================================================================
-    always @(posedge clk_i) begin
-        if (rst_i)
-            sel_r <= 0;
-        else if (c_state == M_IDLE) 
-            sel_r <= sel;
-    end
 
-    always @(posedge clk_i) begin
-        if (rst_i)
-            addr_r <= 0;
-        else if (c_state == M_IDLE)
-            addr_r <= addr; 
-    end
+    //這樣比較好看
+    //就是把sel, addr, rw, wdata傳下去reg
+    
+//    always @(posedge clk_i) begin
+//        if (rst_i) begin
+//            sel_r <= 0;
+//            addr_r <= 0;
+//            rw_r <= 0;
+//            wdata_r <= 0;
+//            same_wt_r <= 0;
+//        end
+//        else if (c_state == M_IDLE)  begin
+//            sel_r <= sel;
+//            addr_r <= addr; 
+//            rw_r <= rw;
+//            wdata_r <= wdata;
+//            same_wt_r <= S_DMEM_same_wt_i;
+//        end
+//    end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             sel_r <= 0;
+         else if (c_state == M_IDLE) 
+             sel_r <= sel;
+     end
 
-    always @(posedge clk_i) begin
-        if (rst_i)
-            rw_r <= 0;
-        else if (c_state == M_IDLE)
-            rw_r <= rw;
-    end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             addr_r <= 0;
+         else if (c_state == M_IDLE)
+             addr_r <= addr; 
+     end
 
-    always @(posedge clk_i) begin
-        if (rst_i)
-            wdata_r <= 0;
-        else if (c_state == M_IDLE)
-            wdata_r <= wdata;
-    end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             rw_r <= 0;
+         else if (c_state == M_IDLE)
+             rw_r <= rw;
+     end
 
-    always @(posedge clk_i) begin
-        if (rst_i)
-            same_wt_r <= 0;
-        else if (c_state == M_IDLE)
-            same_wt_r <= S_DMEM_same_wt_i;
-    end
+     always @(posedge clk_i) begin
+         if (rst_i)
+             wdata_r <= 0;
+         else if (c_state == M_IDLE)
+             wdata_r <= wdata;
+     end
+
+     always @(posedge clk_i) begin
+         if (rst_i)
+             same_wt_r <= 0;
+         else if (c_state == M_IDLE)
+             same_wt_r <= S_DMEM_same_wt_i;
+     end
 
     assign have_strobe = S_IMEM_strobe_r | S_DMEM_strobe_r;
 

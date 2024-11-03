@@ -1,3 +1,3 @@
 #!/bin/bash
 
-cat ocr.elf  > /dev/ttyUSB0
+cat ocr.elf  > /dev/ttyUSB1

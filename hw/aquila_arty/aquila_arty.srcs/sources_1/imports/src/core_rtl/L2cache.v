@@ -76,7 +76,7 @@ module L2cache
     output reg [CLSIZE-1 : 0] P0_L1_data_o,        // Data from  L2cache controller.
     input   [CLSIZE-1 : 0]    P0_L1_data_i,        // Cache data to  L2cache controller.
     output                    P0_L1_ready_o,       // Data from  L2cache is ready.
-    input                     P0_L1_same_wt_i,
+    input                     P0_L1_same_wt_i,     // For MESI (S->I)
 
     input                     P1_L1_strobe_i,      // L1-Cache request to memory.
     input   [XLEN-1 : 0]      P1_L1_addr_i,        // Address of the request.
@@ -84,7 +84,7 @@ module L2cache
     output reg [CLSIZE-1 : 0] P1_L1_data_o,        // Data from  L2cache controller.
     input   [CLSIZE-1 : 0]    P1_L1_data_i,        // Cache data to  L2cache controller.
     output                    P1_L1_ready_o,       // Data from  L2cache is ready.
-    input                     P1_L1_same_wt_i,
+    input                     P1_L1_same_wt_i,     // For MESI (S->I)
 
     // To memory
     output reg                P0_m_strobe_o,       // L2cache request to memory.
@@ -264,6 +264,9 @@ begin
             else
                 P0_S_nxt = Idle;
         Idle:
+        //來源：
+        // else if (probe_same_wt_i == 'b10) probe_same_wt_hi = 1;
+        //tag一樣 代表寫到一樣的cache line
             if (P0_L1_strobe_i || P0_L1_strobe_r)
                 if (P0_L1_same_wt_i)
                     if (P1_L1_same_wt_i)
@@ -275,7 +278,11 @@ begin
             else
                 P0_S_nxt = Idle;
         Analysis:
+            //cache miss
             if (!P0_cache_hit) begin
+                //When a read request is made to the same address,
+                // and P1 is currently reading,
+                // P0 will wait until P1's read operation is complete, then use P1's the data.
                 if(P0_same_rd_w) 
                     P0_S_nxt = RdfromMem_WAIT;
                 else 
@@ -284,6 +291,7 @@ begin
             else // cache hit
                 P0_S_nxt = Idle;
         WbtoMem:
+            // write back to memory finish
             if (P0_m_ready_i)
                 P0_S_nxt = WbtoMemFinish;
             else
@@ -291,6 +299,7 @@ begin
         WbtoMemFinish:
             P0_S_nxt = RdfromMem;
         RdfromMem:
+            //read from memory finish
             if (P0_m_ready_i)
                 P0_S_nxt = RdfromMemFinish;
             else
@@ -298,6 +307,7 @@ begin
         RdfromMemFinish:
             P0_S_nxt = Idle;
         RdfromMem_WAIT:
+            //when P1 read done, turn to finish and use P1's data
             if(P0_same_rd_done_w || P0_same_rd_done_r)
                 P0_S_nxt = RdfromMemFinish;
             else
@@ -325,6 +335,9 @@ begin
             else
                 P1_S_nxt = Idle;
         Idle:
+        //來源：
+        // else if (probe_same_wt_i == 'b10) probe_same_wt_hi = 1;
+        //tag一樣 代表寫到一樣的cache line
             if (P1_L1_strobe_i || P1_L1_strobe_r)
                 if (P1_L1_same_wt_i)
                     if (P0_L1_same_wt_i)
@@ -336,7 +349,11 @@ begin
             else
                 P1_S_nxt = Idle;
         Analysis:
+        //cache miss
             if (!P1_cache_hit) begin
+       //When a read request is made to the same address,
+        // and P0 is currently reading or at the same state,
+        // P1 will wait until P0's read operation is complete, then use P0's the data.
                 if(same_rd_w || P1_same_rd_w) 
                     P1_S_nxt = RdfromMem_WAIT;
                 else 
@@ -345,6 +362,7 @@ begin
             else // cache hit
                 P1_S_nxt = Idle;
         WbtoMem:
+        // write back to memory finish
             if (P1_m_ready_i)
                 P1_S_nxt = WbtoMemFinish;
             else
@@ -352,12 +370,14 @@ begin
         WbtoMemFinish:
             P1_S_nxt = RdfromMem;
         RdfromMem:
+        //read from memory finish
             if (P1_m_ready_i)
                 P1_S_nxt = RdfromMemFinish;
             else
                 P1_S_nxt = RdfromMem;
         RdfromMemFinish:
             P1_S_nxt = Idle;
+        //when P0 read done, turn to finish and use P0's data
         RdfromMem_WAIT:
             if(P1_same_rd_done_w || P1_same_rd_done_r)
                 P1_S_nxt = RdfromMemFinish;
@@ -372,6 +392,7 @@ end
 // Check whether core 0 has the same request as core 1
 //=======================================================
 // P0 P1 read at the same time
+//同時在讀 會先讓P0讀
 assign same_rd_w = ((P0_S == Analysis) && (P1_S == Analysis))&& 
                         ((P0_L1_rw_i == 0) && (P1_L1_rw_i == 0))&&
                         (P0_line_index == P1_line_index) &&
@@ -387,6 +408,7 @@ always @(posedge clk_i) begin
 end
 
 // P0_same_rd_w: P1 read first 
+//兩個core讀一樣的adress且P1先讀, P0就進入wait
 assign P0_same_rd_w = (P0_S == Analysis) && 
                       (P1_S != Idle && P1_S != Analysis && P1_S != RdfromMemFinish) &&
                       (P0_L1_rw_i == 0 && P1_L1_rw_i == 0) &&
@@ -403,6 +425,7 @@ always @(posedge clk_i) begin
 end
 
 // P1_same_rd_w: P0 read first 
+//兩個core讀一樣的adress且P0先讀, P1就進入wait
 assign P1_same_rd_w = (P1_S == Analysis) && 
                       (P0_S != Idle && P0_S != Analysis && P0_S != RdfromMemFinish) &&
                       (P0_L1_rw_i == 0 && P1_L1_rw_i == 0)&&
@@ -636,6 +659,7 @@ begin
         same_wt_r <= 0;
     else if(P0_S == Idle || P1_S == Idle)
     //else if(P0_S == Idle) // yyyenn 0509
+    //寫到同一個address
         if((P0_L1_rw_i && P1_L1_rw_i) &&  (P0_L1_addr_i[XLEN-1 : WORD_BITS+2] == P1_L1_addr_i[XLEN-1 : WORD_BITS+2]))
             same_wt_r <= 1;
         else 
@@ -646,32 +670,55 @@ end
 //-----------------------------------------------
 // Output signals
 
-reg [4:0] t;
+//////////debug區///////////////////////////////////
+(* mark_debug = "true" *) reg [15:0] p0_cnt, p1_cnt;
+(* mark_debug = "true" *) reg [15:0] p0_same_cnt, p1_same_cnt;
+reg p0_cnt_flag;
+reg p1_cnt_flag;
+reg p0_same_cnt_flag;
+reg p1_same_cnt_flag;
+initial begin
+    p0_cnt_flag = 0;
+    p1_cnt_flag = 0;
+    p0_cnt = 0;
+    p1_cnt = 0;
+    p0_same_cnt_flag = 0;
+    p1_same_cnt_flag = 0;
+    p0_same_cnt = 0;
+    p1_same_cnt = 0;
+end
+always @(posedge clk_i)begin
+    if(p0_cnt_flag) p0_cnt <= p0_cnt + 1;
+    if(p1_cnt_flag) p1_cnt <= p1_cnt + 1;
+    if(p0_same_cnt_flag) p0_same_cnt <= p0_same_cnt + 1;
+    if(p1_same_cnt_flag) p1_same_cnt <= p1_same_cnt + 1;
+end
+////debug/////////////////////////////
+
+reg [4:0] t; //??沒用
 always @(*)
 begin // Note: P0_L1_data_o is significant when processor read data
     if ( (P0_S == Analysis) && P0_cache_hit && !P0_rw_r)begin
         P0_L1_data_o = P0_c_data_hit;
-        t <= 0;
     end
         
     else if ((P0_S == RdfromMemFinish) && !P0_rw_r)
         if(P0_same_rd_r) begin
+            //看為什麼要判斷這個 理論上這裡same_rd_done要是1
             if(same_rd_done)begin
                 P0_L1_data_o = P1_c_block[P1_victim_sel];
-                t <= 1;
+                p0_same_cnt_flag= 1;
             end
             else begin
                 P0_L1_data_o = P1_m_data;
-                t <= 2;
+                p0_cnt_flag = 1;
             end
         end
         else begin
             P0_L1_data_o = P0_m_data;
-            t <= 3;
         end
     else begin
         P0_L1_data_o = {CLSIZE{1'b0}};
-        t <= 4;
         end
         
 end
@@ -684,10 +731,15 @@ begin // Note: P1_L1_data_o is significant when processor read data
         if(same_rd_r)
             P1_L1_data_o = P0_m_data;
         else if(P1_same_rd_r)  begin
-            if(same_rd_done)
+            //看為什麼要判斷這個 理論上這裡same_rd_done要是1
+            if(same_rd_done) begin
                 P1_L1_data_o = P0_c_block[P0_victim_sel];
-            else
+                p1_same_cnt_flag = 1;
+            end
+            else begin
+                p1_cnt_flag = 1;
                 P1_L1_data_o = P0_m_data;
+            end
         end
         else 
             P1_L1_data_o = P1_m_data;
@@ -815,6 +867,8 @@ end
 // If two cores write to the same cache line with different line offsets.
 always @(*)
 begin
+    //寫到一樣的話 把P1的data放到offset位置 其他都放P0
+    //然後只更新在P0的cache (?)
     case (P1_line_offset)
 `ifdef ARTY
             2'b11: c_data_i = {P0_L1_data_r[127:32], P1_L1_data_r[31:0]};
@@ -841,6 +895,7 @@ begin
         P0_c_data_i = (P0_S == RdfromMemFinish) ? P0_m_data : {CLSIZE{1'b0}};
     else begin   // Processor write cache
         if ( (P0_S == Analysis) && P0_cache_hit) // write hit
+            //寫到同一個地方 (只寫到P0的cache)
             if(same_wt_r)
                 P0_c_data_i = c_data_i;
             else

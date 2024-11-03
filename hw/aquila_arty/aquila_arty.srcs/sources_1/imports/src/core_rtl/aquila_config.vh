@@ -100,11 +100,12 @@
 `define Monitor 1
 
 // SIM_FNAME defines the RISC-V program path of an ELF file for simulation.
-//`define SIM_FNAME_0  "/home/zichen/zichen/aquila_mp/aquila_mp_sw/ocr_2core/ocr_0.elf"
+//`define SIM_FNAME_0  "/home/zichen/zichen/mpd/aquila_sw/pi/pi.elf"
 //`define SIM_FNAME_0  "/home/zichen/zichen/aquila_mp/aquila_mp_sw/ocr_1core/ocr.elf"
 
-`define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/aquila_mp_sw/coremark_2core/CoreMark/coremark.elf"
+//`define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/sw/coremark_2core/CoreMark/coremark.elf"
 //`define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/aquila_mp_sw/test/test_0.elf"
+`define SIM_FNAME_0  "/home/zichen/zichen/aquila_mp/sw/ocr_2core/ocr_0.elf"
 //`define SIM_FNAME_1 "/home/zichen/zichen/aquila_mp/aquila_mp_sw/test/test_1.elf"
-`define SIM_FNAME_1 "/home/zichen/zichen/aquila_mp/aquila_mp_sw/coremark_2core/CoreMark2/coremark.elf"
-//`define SIM_FNAME_1  "/home/zichen/zichen/aquila_mp/aquila_mp_sw/ocr_2core/ocr_1.elf"
+//`define SIM_FNAME_1 "/home/zichen/zichen/aquila_mp/sw/coremark_2core/CoreMark2/coremark.elf"
+`define SIM_FNAME_1  "/home/zichen/zichen/aquila_mp/sw/ocr_2core/ocr_1.elf"

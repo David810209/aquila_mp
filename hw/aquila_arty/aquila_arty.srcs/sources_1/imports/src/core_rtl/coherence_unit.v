@@ -172,6 +172,8 @@ always @(*) begin
 `ifdef ENABLE_ATOMIC_UNIT
             if((AMO_core_id == 'b10) && (!P0_broadcast_is_amo_i && P1_broadcast_is_amo_i))  // If other is amo
                 P0_S_nxt = WaitForAmo;   
+
+            //memory request
             else if (P0_broadcast_strobe_i || (P0_broadcast_strobe_r && (AMO_core_id == 'b10) && P1_previous_is_amo))
                 P0_S_nxt = Analysis;
             else
@@ -184,18 +186,23 @@ always @(*) begin
 `endif     
         Analysis:
             if(P0_broadcast_hit_i)  // hit
+            //write hit
                 if(P0_broadcast_rw_r)
                     P0_S_nxt = Broadcast;
+            //read hit
                 else
                     P0_S_nxt = Idle;
-            else                    // miss
+            else                    // read/write miss
                 P0_S_nxt = ProbeWait;
         ProbeWait:
+        // two cores write to the same cache line
             if(same_wt_req_hi & same_wt_req_lo)
                 P0_S_nxt = Idle;
             else if(P1_broadcast_shared_ready_i)
+            //write done
                 if(P0_broadcast_rw_r)
                     P0_S_nxt = Broadcast;
+            //read done
                 else begin
                     P0_S_nxt = Idle;
                 end
@@ -216,6 +223,7 @@ always @(*) begin
     endcase
 end
 
+//一樣
 always @(*) begin
     case (P1_S)
         Idle:
@@ -269,6 +277,7 @@ end
 //====================================================
 // Input signals
 //====================================================
+//save input signal to register//////////////////////////////////////////////////////////////
 // strobe
 always @(posedge clk_i) begin
     if(rst_i)
@@ -391,7 +400,11 @@ always @(posedge clk_i) begin
 end
 
 `endif
+//save input signal to register//////////////////////////////////////////////////////////////
+
+
 /************* Read/Write Miss **************/
+//沒用?
 // read data
 always @(posedge clk_i) begin
     if(rst_i) 
@@ -401,7 +414,7 @@ always @(posedge clk_i) begin
     else if (P1_S == Idle)
         P0_broadcast_data_rd_r <= 0;       
 end
-
+//沒用?
 always @(posedge clk_i) begin
     if(rst_i) 
         P1_broadcast_data_rd_r <= 0;   
@@ -412,6 +425,7 @@ always @(posedge clk_i) begin
 end
 
 // share
+//沒用?
 always @(posedge clk_i) begin
     if(rst_i) 
         P0_broadcast_shared_r <= 0;   
@@ -421,6 +435,7 @@ always @(posedge clk_i) begin
         P0_broadcast_shared_r <= 0;  
 end
 
+//沒用?
 always @(posedge clk_i) begin
     if(rst_i) 
         P1_broadcast_shared_r <= 0;   
@@ -429,7 +444,7 @@ always @(posedge clk_i) begin
     else
         P1_broadcast_shared_r <= 0;  
 end
-
+//沒用?
 always @(posedge clk_i) begin
     if(rst_i) 
         P0_broadcast_shared_ready_r <= 0;   
@@ -438,7 +453,7 @@ always @(posedge clk_i) begin
     else
         P0_broadcast_shared_ready_r <= 0;  
 end
-
+//沒用?
 always @(posedge clk_i) begin
     if(rst_i) 
         P1_broadcast_shared_ready_r <= 0;   
@@ -485,6 +500,7 @@ end
 //====================================================
 // Output signals
 //====================================================
+//把每個core的broadcast變成probe signal傳到其他core
 /************* Core 0 **************/
 assign P0_probe_strobe_o        = (P1_S == ProbeWait || P1_S == Broadcast)  ? P1_broadcast_strobe_r : 'b0;
 assign P0_probe_rw_o            = (P1_S == Broadcast) ? P1_broadcast_rw_r : 'b0;   // ProbeWait: ReadFromOther

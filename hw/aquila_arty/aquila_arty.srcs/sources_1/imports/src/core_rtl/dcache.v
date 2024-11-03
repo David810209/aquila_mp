@@ -310,40 +310,50 @@ always @(*)
 begin
     case (PROBE_S)
         PROBE_Idle: 
+        //remote cache get a strobe (probe from cache coherence unit)
             if(probe_strobe_i)
                 PROBE_S_nxt = PROBE_Analysis;
             else
                 PROBE_S_nxt = PROBE_Idle;
         PROBE_Analysis:
+        //remote write
             if(probe_rw_i || probe_rw_r) begin
+                //remote core write done
                 if(probe_ready_i || probe_hit_r)
                     PROBE_S_nxt = PROBE_Update;
+                //wait until remote core write done
                 else
                     PROBE_S_nxt = PROBE_WaitUpdate;
             end
+        //remote read
             else begin
+                // 這個core正在write remote probe的address
                 if(wt_same_cacheline_w)
                     PROBE_S_nxt = PROBE_WaitCheck;
                 else    
                     PROBE_S_nxt = PROBE_Check;
             end
         PROBE_WaitCheck:
+            //this core write done
             if(p_ready_o)
                 PROBE_S_nxt = PROBE_Check;
             else    
                 PROBE_S_nxt = PROBE_WaitCheck;
         PROBE_Check:
+            //if strobe then go to analysis again
             if(probe_strobe_i)
                  PROBE_S_nxt = PROBE_Analysis;
             else
                 PROBE_S_nxt = PROBE_Idle;
         PROBE_WaitUpdate: 
+            // remote core write done
             if(probe_ready_i)
                 PROBE_S_nxt = PROBE_Update;
             else
                 PROBE_S_nxt = PROBE_WaitUpdate;
         PROBE_Update:
             if(probe_strobe_i)
+            //if strobe then go to analysis again
                 PROBE_S_nxt = PROBE_Analysis;
             else
                 PROBE_S_nxt = PROBE_Idle;  
@@ -352,6 +362,9 @@ begin
     endcase
 end
 
+//====================================================
+// Cache Coherence write back  FSM
+//====================================================
 always @(posedge clk_i)
 begin
     if (rst_i)
@@ -364,11 +377,15 @@ always @(*)
 begin
     case (PROBE_WB_S)
         PROBE_WbtoMemIdle:
+            //MESI (M -> S)
+            // check if data is valid
             if(probe_needtoWb_r && probe_wb_valid)
                 PROBE_WB_S_nxt = PROBE_WbtoMem;
             else
                 PROBE_WB_S_nxt = PROBE_WbtoMemIdle;
+            
         PROBE_WbtoMem:  
+            //write to memory complete
             if(m_ready_i)
                 PROBE_WB_S_nxt = PROBE_WbtoMemFinish;
             else
@@ -380,6 +397,7 @@ begin
     endcase
 end
 
+////沒用？？//////////////////////////////////////////////////////////
 reg                  probe_same_wt_update;
 reg [XLEN-1 : 0]     probe_same_wt_addr;
 
@@ -398,6 +416,8 @@ always @(posedge clk_i) begin
     else if(probe_same_wt_all)
         probe_same_wt_addr <= p_addr_r;
 end
+///////沒用？？/////////////////////////////////////////////////////////
+
 
 //=======================================================
 // Cache Coherence through Broadcast
@@ -405,6 +425,7 @@ end
 assign probe_line_index  = (probe_strobe_i)? probe_addr_i[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS] : 
                                              probe_addr_r[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS];
 assign probe_tag         = probe_addr_r[XLEN - 1 : NONTAG_BITS];
+// probe address == current address
 assign probe_wait        = ((probe_strobe_i) && (p_rw_r && probe_rw_i) && (line_index == probe_line_index) &&
                             (tag == probe_tag)) ? 'b1 : 'b0;
 
@@ -446,21 +467,28 @@ generate
     end
 endgenerate
 
+//沒用?？//////////////////
 always @(posedge clk_i) begin
     if (rst_i)
         probe_cache_hit_r <= 0;
     else
         probe_cache_hit_r <= probe_cache_hit;
 end
+//沒用?？//////////////////
 
 //*** M -> S need to write back to memory***//
 assign probe_wb_valid = (S == RdfromMem  || S == RdfromOtherFinish || S == WbtoMem || S == WbtoMemAll || S == WbtoMemAllFinish) ? 'b0 : 'b1;
+// probe hit and dirty, or write to the same address
 assign probe_needtoWb_w = ((PROBE_S == PROBE_Check && (probe_cache_dirty && probe_cache_hit)) || // MESI: M -> S
+
                           ((probe_same_wt_hi || probe_same_wt_all || (probe_same_wt_i[1] | probe_same_wt_i[0])) && 
-                           (p_ready_w || p_ready_r)))// MESI: I(hi) S(all)
+                           (p_ready_w || p_ready_r)))// MESI: I(hi) S(all) 
                           ? 'b1 : 'b0;
-assign probe_wb_data_w =(probe_same_wt_hi || probe_same_wt_all) ? (p_ready_w) ? c_data_i : c_block[probe_hit_index]:  
-                        (PROBE_S == PROBE_Check && (probe_cache_dirty && probe_cache_hit)) ? probe_block[probe_hit_index] : 'b0;
+assign probe_wb_data_w =(probe_same_wt_hi || probe_same_wt_all) ?
+                         (p_ready_w) ? c_data_i : c_block[probe_hit_index] 
+                         :  
+                        (PROBE_S == PROBE_Check && (probe_cache_dirty && probe_cache_hit)) ? 
+                        probe_block[probe_hit_index] : 'b0;
 
 always @(posedge clk_i) begin
     if (rst_i)
@@ -499,6 +527,8 @@ always @(posedge clk_i) begin
         OtherWt_same_addr <= 0;
 end
 //*** Control writing bits for cache memory using probe data. ***//
+//       這邊沒看清楚////////////////////////////
+// probe cacha write en always 0 ??
 always @(*) begin
     if (rst_i)
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
@@ -508,6 +538,8 @@ always @(*) begin
             probe_cache_write[idx] = 1'b0;
 end
 
+//remote core write done 
+// 為什麼write done是valid ?
 always @(*) begin
     if(PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all) // MESI: M/E/S -> I
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
@@ -518,9 +550,12 @@ always @(*) begin
 end
 
 always @(*) begin
+    // remote read done and need to write back
+    //為什麼share是dirty?
     if(PROBE_S == PROBE_Check && probe_cache_hit && probe_needtoWb_w) // MESI: M -> S
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             probe_dirty_write[idx] = probe_way_hit[idx];
+    // remote core write done
     else if(PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all) // MESI: M -> I
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             probe_dirty_write[idx] = probe_way_hit[idx];
@@ -530,9 +565,11 @@ always @(*) begin
 end
 
 always @(*) begin
+    // remote read done 
     if(PROBE_S == PROBE_Check && probe_cache_hit) // MESI: M/E -> S
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             probe_share_write[idx] = probe_way_hit[idx];
+    // 為什麼invalid是share
     else if(PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all) // MESI: S -> I
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             probe_share_write[idx] = probe_way_hit[idx];
@@ -567,6 +604,7 @@ always @(posedge clk_i) begin
         probe_addr_r <= probe_addr_i;
 end
 
+//hi的特殊作用
 always @(posedge clk_i) begin
     if (rst_i)
         probe_same_wt_hi = 0;
@@ -575,7 +613,7 @@ always @(posedge clk_i) begin
     else if(PROBE_WB_S == PROBE_WbtoMemFinish)
         probe_same_wt_hi = 0;
 end
-
+//
 always @(posedge clk_i) begin
     if (rst_i)
         probe_same_wt_all = 0;
@@ -1276,6 +1314,7 @@ end
 //=======================================================
 //  Cache data storage in Block RAM
 //=======================================================
+//probe write is always zero
 genvar i;
 generate
     for (i = 0; i < N_WAYS; i = i + 1)
@@ -1320,7 +1359,7 @@ generate
              );
     end
 endgenerate
-
+//////////這邊還沒看清楚///////////////////////////////////////////////////////////////////////////
 //=======================================================
 //  Valid bits storage in distributed RAM
 //=======================================================

@@ -55,7 +55,7 @@ float relu(float x);
 #define LOCK_EVAL_INNPROC 0x777
 #define LOCK_DONE 0x888
 #define MULT_CORE
-
+#define LOCK_INITIAL 0x999
 extern unsigned int print_lock;
 extern volatile unsigned int *lock_0;
 extern volatile unsigned int *lock_1;
@@ -75,4 +75,5 @@ void initialize();
 int getID();
 void acquire();
 void release();
-//#define DEBUG
+void setLock() ;
+// #define DEBUG

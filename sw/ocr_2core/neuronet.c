@@ -55,13 +55,19 @@ int getID() {
     return hart_id;
 }
 
-__attribute__((optimize("O0"))) void acquire(void) {
+void setLock(void) {
+    asm volatile ("lui t0, %hi(print_lock)");
+    asm volatile ("lw t2, %lo(print_lock)(t0)");
+    asm volatile ("sw x0, (t2)");
+}
+
+__attribute__((optimize("O0")))  void acquire(void) {
     asm volatile ("lui t0, %hi(print_lock)");
     asm volatile ("lw t2, %lo(print_lock)(t0)");
     asm volatile ("li t0, 1");
     asm volatile ("again:");
-    asm volatile ("lw t1, (t2)");
-    asm volatile ("bnez t1, again");
+    asm volatile ("lw t1, (t2)"); // [t2] initial value is zero.
+    asm volatile ("bnez t1, again"); // if [t1] isn't zero , jumo to "again" 
     asm volatile ("amoswap.w.aq t1, t0, (t2)");
     asm volatile ("bnez t1, again");
 }
@@ -157,21 +163,33 @@ void neuronet_free(NeuroNet *nn)
 
 int neuronet_eval(NeuroNet *nn, float *images, int hart_id)
 {
-    
+            // 重置锁的状态
+    acquire();
+    if(*lock_0 != LOCK_INITIAL)*lock_0 = LOCK_INITIAL;
+    if(*lock_1 != LOCK_INITIAL)*lock_1 = LOCK_INITIAL;
+    release();
+    hart_id = getID();
     float inner_product, max;
     float *p_neuron, *p_weight;
     int idx, layer_idx, neuron_idx, max_idx;
 
 #ifdef MULT_CORE
     if(hart_id == 0){
-        while (*lock_1 != LOCK_EVAL_MEMCPY); 
+        while (*lock_1 != LOCK_EVAL_MEMCPY) ;
+
+        acquire();
         *lock_0 = LOCK_EVAL_MEMCPY; 
+        printf("core 0 enter eval\n");
+        release();
     }
     else{
         // Copy the input image array (784 pixels) to the input neurons.
+        acquire();
         memcpy((void *) nn->neurons, (void *) images, nn->n_neurons[0]*sizeof(float));
         *lock_1 = LOCK_EVAL_MEMCPY;
-        while (*lock_0 != LOCK_EVAL_MEMCPY); 
+        printf("core 1 enter eval\n");
+        release();
+        while (*lock_0 != LOCK_EVAL_MEMCPY);
     }
     
     // Forward computations 
@@ -205,11 +223,15 @@ int neuronet_eval(NeuroNet *nn, float *images, int hart_id)
     // Return the index to the maximal neuron value of the output layer.
     if(hart_id == 0){
         while (*lock_1 != LOCK_EVAL_INNPROC);
+        acquire();
         *lock_0 = LOCK_EVAL_INNPROC;    
+        release();
         return 0; 
     } 
     else{
+        acquire();
         *lock_1 = LOCK_EVAL_INNPROC; 
+        release();
         while (*lock_0 != LOCK_EVAL_INNPROC);
         max = -1.0, max_idx = 0;
         for (idx = 0; idx < nn->n_neurons[nn->total_layers-1]; idx++)
@@ -266,5 +288,3 @@ float relu(float x)
 {
 	return x < 0.0 ? 0.0 : x;
 }
-
-
