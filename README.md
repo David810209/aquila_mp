@@ -15,7 +15,7 @@ The goal is to expand the RISC-V 5-stage pipelined processor to a quad-core syst
    ![MOSI FSM Diagram](mosi.png)
 
 ## Completed Work
-**Coherence Verification**, **Shared Memory Testing**,  **UART Boot Code and Linker Script Modification**, **Mutex Logic Modification**  
+Coherence Verification, Shared Memory Testing,  UART Boot Code and Linker Script Modification, Mutex Logic Modification  
 ---
 
 ## Current Work
@@ -28,7 +28,7 @@ The goal is to expand the RISC-V 5-stage pipelined processor to a quad-core syst
 ---
 
 ## TODO
-1. **Implementation** ,**Unit Testing** ,**Design Unification**, **software run on quad core design**
+Implementation, Unit Testing, Design Unification, software run on quad core design
 ---
 
 
