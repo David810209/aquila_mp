@@ -1,39 +1,41 @@
-## Aquila MP Project
+# Overview  
+This project focuses on verifying and simplifying the coherence circuit design of a dual-core system extended from a RISC-V 5-stage pipelined processor, originally developed by the Embedded Intelligent System Lab (EISL).  
 
-**Overview**  
-This project focuses on verifying and simplifying the coherence circuit design of a dual-core system extended from a RISC-V 5-stage pipelined processor, originally developed by the Embedded Intelligent System Lab. The goal is to expand the architecture to a quad-core system, with real-time testing and validation implemented on the Arty-A7 100T FPGA board.
+The goal is to expand the RISC-V 5-stage pipelined processor to a quad-core system using the MOSI protocol.  
 
-**Source Code**  
-Aquila's source code is available on GitHub: [Aquila GitHub Repository](https://github.com/eisl-nctu/aquila)
+## Expected Artifacts
+1. **Architecture Diagram**  
+   - The anticipated quad-core architecture is shown below:
 
-**Development Background**  
-The dual-core system was originally extended by a senior from the master’s program. The architecture is being further enhanced to accommodate a quad-core system, focusing on optimizing cache coherence and overall system performance.
+   ![Architecture Diagram](architecture.png)
+
+2. **MOSI FSM Diagram**  
+   - The MOSI protocol's FSM is visualized below:
+
+   ![MOSI FSM Diagram](mosi.png)
+
+## Completed Work
+**Coherence Verification**, **Shared Memory Testing**,  **UART Boot Code and Linker Script Modification**, **Mutex Logic Modification**  
+---
+
+## Current Work
+1. **Module Design Documentation**  
+   - Developing a detailed block diagram, FSM (Finite State Machine), and timing diagram for modules in the quad-core design.
+
+2. **System Verification**  
+   - Verifying the redesigned system to ensure it adheres to the MOSI protocol and performs reliably under quad-core operation.
 
 ---
 
-### Current Work
+## TODO
+1. **Implementation** ,**Unit Testing** ,**Design Unification**, **software run on quad core design**
+---
 
-1. **Coherence Verification**  
-   - Analyzing hardware code and running CoreMark to trace waveforms and verify the correctness of the cache coherence system design.
-   
-2. **Shared Memory Testing**  
-   - Writing and executing shared memory read/write tests to ensure that the dual-core system can properly handle shared memory operations.
-
-3. **UART Boot Code Modification**  
-   - Modifying the UART boot code to fit the Arty A7-100T FPGA board. Originally designed for a more expensive development board, the clock rate is lower, so adjustments to the boot code are necessary.
 
 ---
 
-### Future Work
-
-1. **Detailed Documentation**  
-   - Writing a detailed block diagram, FSM (Finite State Machine), and timing diagram of the coherence-related unit, followed by adding unit tests for verification.
-
-2. **Simplification of Datapath and Signals**  
-   - Simplifying the datapath and signal flow, then verifying that the system still functions correctly under the new design.
-
-3. **Quad-Core Expansion**  
-   - Extending the system to a quad-core architecture and testing it with additional benchmarks beyond CoreMark.
+## Source Code  
+Aquila's source code is available on GitHub: [Aquila GitHub Repository](https://github.com/eisl-nctu/aquila)  
 
 ---
 

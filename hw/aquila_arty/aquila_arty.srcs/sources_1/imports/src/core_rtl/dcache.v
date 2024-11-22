@@ -398,24 +398,24 @@ begin
 end
 
 ////沒用？？//////////////////////////////////////////////////////////
-reg                  probe_same_wt_update;
-reg [XLEN-1 : 0]     probe_same_wt_addr;
+// reg                  probe_same_wt_update;
+// reg [XLEN-1 : 0]     probe_same_wt_addr;
 
-always @(posedge clk_i) begin
-    if (rst_i)
-        probe_same_wt_update <= 0;
-    else if(probe_same_wt_i && (probe_addr_r[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS] != p_addr_r[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS]))
-        probe_same_wt_update <= 1;
-    else if(PROBE_WB_S_nxt == PROBE_WbtoMemIdle)
-        probe_same_wt_update <= 0;
-end
+// always @(posedge clk_i) begin
+//     if (rst_i)
+//         probe_same_wt_update <= 0;
+//     else if(probe_same_wt_i && (probe_addr_r[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS] != p_addr_r[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS]))
+//         probe_same_wt_update <= 1;
+//     else if(PROBE_WB_S_nxt == PROBE_WbtoMemIdle)
+//         probe_same_wt_update <= 0;
+// end
 
-always @(posedge clk_i) begin
-    if (rst_i)
-        probe_same_wt_addr <= 0;
-    else if(probe_same_wt_all)
-        probe_same_wt_addr <= p_addr_r;
-end
+// always @(posedge clk_i) begin
+//     if (rst_i)
+//         probe_same_wt_addr <= 0;
+//     else if(probe_same_wt_all)
+//         probe_same_wt_addr <= p_addr_r;
+// end
 ///////沒用？？/////////////////////////////////////////////////////////
 
 
@@ -468,12 +468,12 @@ generate
 endgenerate
 
 //沒用?？//////////////////
-always @(posedge clk_i) begin
-    if (rst_i)
-        probe_cache_hit_r <= 0;
-    else
-        probe_cache_hit_r <= probe_cache_hit;
-end
+// always @(posedge clk_i) begin
+//     if (rst_i)
+//         probe_cache_hit_r <= 0;
+//     else
+//         probe_cache_hit_r <= probe_cache_hit;
+// end
 //沒用?？//////////////////
 
 //*** M -> S need to write back to memory***//
