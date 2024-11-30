@@ -1,7 +1,7 @@
 # Overview  
 This project focuses on verifying and simplifying the coherence circuit design of a dual-core system extended from a RISC-V 5-stage pipelined processor, originally developed by the Embedded Intelligent System Lab (EISL).  
 
-The goal is to expand the RISC-V 5-stage pipelined processor to a quad-core system using the MOSI protocol.  
+The goal is to expand the RISC-V 5-stage pipelined processor to a quad-core system using the MESI protocol.  
 
 ## Expected Artifacts
 1. **Architecture Diagram**  
@@ -9,10 +9,10 @@ The goal is to expand the RISC-V 5-stage pipelined processor to a quad-core syst
 
    ![Architecture Diagram](architecture.png)
 
-2. **MOSI FSM Diagram**  
-   - The MOSI protocol's FSM is visualized below:
+2. **MESI FSM Diagram**  
+   - The MESI protocol's FSM is visualized below:
 
-   ![MOSI FSM Diagram](mosi.png)
+   ![MESI FSM Diagram](MESI.png)
 
 ## Completed Work
 Coherence Verification, Shared Memory Testing,  UART Boot Code and Linker Script Modification, Mutex Logic Modification  
