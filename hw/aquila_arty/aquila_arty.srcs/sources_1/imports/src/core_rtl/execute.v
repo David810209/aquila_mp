@@ -132,6 +132,7 @@ module execute #( parameter XLEN = 32 )
     output reg              regfile_we_o,
     output reg [ 4 : 0]     rd_addr_o,
     output reg [XLEN-1 : 0] p_data_o,
+
     output reg              csr_we_o,
     output reg [11 : 0]     csr_we_addr_o,
     output reg [XLEN-1 : 0] csr_we_data_o,
@@ -269,8 +270,8 @@ begin
 end
 
 // ===============================================================================
-//  Pipeline register operations for the Execute stage.
-
+//  Output registers to the Memory stage
+//
 always @(posedge clk_i)
 begin
     if (rst_i || (flush_i && !stall_i)) // stall has higher priority than flush.

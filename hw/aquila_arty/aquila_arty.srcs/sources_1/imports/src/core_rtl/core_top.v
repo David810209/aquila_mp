@@ -36,6 +36,12 @@
 //
 //  Sep/16/2022, by Chun-Jen Tsai:
 //    Disable interrupts during external memory accesses or AMO operations.
+//
+//  Aug/20/2024, by Chun-Jen Tsai:
+//    Modify the Memory and Writeback stages such that it matches the coding
+//    style of the other stages. Also, changes the naming convention of the
+//    inter-stage signals to make them more readable.
+//
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -123,88 +129,112 @@ module core_top #(
 // ------------------------------
 //  Fetch stage output signals
 // ------------------------------
-wire [XLEN-1 : 0] fet_instr2dec, fet_pc2dec;
-wire              fet_branch_hit, fet_branch_decision;
+wire [XLEN-1 : 0] fet2dec_instr;
+wire [XLEN-1 : 0] fet2dec_pc;
+wire              fet_branch_hit;
+wire              fet_branch_decision;
 
-wire              fet_valid2dec;
-wire              fet_xcpt_valid2dec;
-wire [ 3 : 0]     fet_xcpt_cause2dec;
-wire [XLEN-1 : 0] fet_xcpt_tval2dec;
+wire              fet2dec_valid;
+wire              fet2dec_xcpt_valid;
+wire [ 3 : 0]     fet2dec_xcpt_cause;
+wire [XLEN-1 : 0] fet2dec_xcpt_tval;
 
 // ------------------------------
 //  Decode stage output signals
 // ------------------------------
 // Signals sent to multiple destinations
 wire [XLEN-1 : 0] dec_pc;
-wire              dec_is_branch, dec_is_jal, dec_is_jalr;
-wire              dec_branch_hit, dec_branch_decision;
+wire              dec_is_branch;
+wire              dec_is_jal;
+wire              dec_is_jalr;
+wire              dec_branch_hit;
+wire              dec_branch_decision;
 
-// Signals sent to Pipeline Control only
-wire              dec_load_hazard2plc;
+// Signals sent to Pipeline Control
+wire              dec2plc_load_hazard;
 wire              dec_unsupported_instr;
 
-// Signals sent to Register File only
-wire [ 4 : 0]     dec_rs1_addr2rfu, dec_rs2_addr2rfu;
+// Signals sent to Register File
+wire [ 4 : 0]     dec2rfu_rs1_addr;
+wire [ 4 : 0]     dec2rfu_rs2_addr;
 
-// Signals sent to Forwarding Unit only
-wire [ 4 : 0]     dec_rs1_addr2fwd, dec_rs2_addr2fwd;
-wire [XLEN-1 : 0] dec_rs1_data2fwd, dec_rs2_data2fwd;
-wire [11: 0]      dec_csr_addr2fwd;
-wire [XLEN-1 : 0] dec_csr_data2fwd;
+// Signals sent to Forwarding Unit
+wire [ 4 : 0]     dec2fwd_rs1_addr;
+wire [ 4 : 0]     dec2fwd_rs2_addr;
+wire [XLEN-1 : 0] dec2fwd_rs1_data;
+wire [XLEN-1 : 0] dec2fwd_rs2_data;
+wire [11: 0]      dec2fwd_csr_addr;
+wire [XLEN-1 : 0] dec2fwd_csr_data;
 
-// Signals sent to CSR only
-wire [11 : 0]     dec_csr_addr2csr;
+// Signals sent to CSR
+wire [11 : 0]     dec2csr_csr_addr;
 
-// Signals sent to Execute only
-wire [ 4 : 0]     dec_rd_addr2exe;
-wire              dec_we2exe, dec_re2exe;
-wire [XLEN-1 : 0] dec_imm2exe;
-wire              dec_csr_we2exe;
-wire [ 4 : 0]     dec_csr_imm2exe;
-wire [ 1 : 0]     dec_inA_sel2exe, dec_inB_sel2exe, dec_dsize_sel2exe;
-wire [ 2 : 0]     dec_regfile_sel2exe, dec_operation_sel2exe;
-wire              dec_regfile_we2exe, dec_signex_sel2exe;
-wire              dec_alu_muldiv_sel2exe, dec_shift_sel2exe;
-wire              dec_is_fencei2exe;
-wire              dec_is_amo2exe;
-wire [ 4 : 0]     dec_amo_type2exe;
+// Signals sent to Execute
+wire [ 4 : 0]     dec2exe_rd_addr;
+wire              dec2exe_we;
+wire              dec2exe_re;
+wire [XLEN-1 : 0] dec2exe_imm;
+wire              dec2exe_csr_we;
+wire [ 4 : 0]     dec2exe_csr_imm;
+wire [ 1 : 0]     dec2exe_inA_sel;
+wire [ 1 : 0]     dec2exe_inB_sel;
+wire [ 1 : 0]     dec2exe_dsize_sel;
+wire [ 2 : 0]     dec2exe_regfile_sel;
+wire [ 2 : 0]     dec2exe_operation_sel;
+wire              dec2exe_regfile_we;
+wire              dec2exe_signex_sel;
+wire              dec2exe_alu_muldiv_sel;
+wire              dec2exe_shift_sel;
+wire              dec2exe_is_fencei;
+wire              dec2exe_is_amo;
+wire [ 4 : 0]     dec2exe_amo_type;
 
-wire              dec_fetch_valid2exe;
-wire              dec_sys_jump2exe;
-wire [ 1 : 0]     dec_sys_jump_csr_addr2exe;
-wire              dec_xcpt_valid2exe;
-wire [ 3 : 0]     dec_xcpt_cause2exe;
-wire [XLEN-1 : 0] dec_xcpt_tval2exe;
+wire              dec2exe_fetch_valid;
+wire              dec2exe_sys_jump;
+wire [ 1 : 0]     dec2exe_sys_jump_csr_addr;
+wire              dec2exe_xcpt_valid;
+wire [ 3 : 0]     dec2exe_xcpt_cause;
+wire [XLEN-1 : 0] dec2exe_xcpt_tval;
 
 // ------------------------------
 //  Execute stage output signals
 // ------------------------------
 wire              exe_branch_taken;
-wire [XLEN-1 : 0] exe_branch_restore_pc, exe_branch_target_addr;
+wire [XLEN-1 : 0] exe_branch_restore_pc;
+wire [XLEN-1 : 0] exe_branch_target_addr;
 wire              exe_is_branch2bpu;
-wire              exe_we, exe_re;
-wire              exe_regfile_we2wbk;
-wire [ 1 : 0]     exe_dsize_sel2mem;
-wire              exe_signex_sel2wbk;
-wire [XLEN-1 : 0] exe_rs2_data2mem, exe_addr2mem, exe_p_data;
-wire [ 4 : 0]     exe_rd_addr2wbk;
-wire [ 2 : 0]     exe_regfile_input_sel2wbk;
+wire              exe_re;
+wire              exe_we;
+
 wire              exe_branch_misprediction;
 wire              exe_is_fencei;
 wire              exe_is_amo2mem;
 wire [ 4 : 0]     exe_amo_type2mem;
+
+// to FWD unit and Memory stage
+wire [XLEN-1 : 0] exe_p_data;
 wire              exe_csr_we;
 wire [11 : 0]     exe_csr_addr;
 wire [XLEN-1 : 0] exe_csr_data;
 
-wire              exe_fetch_valid2mem;
-wire              exe_sys_jump2mem;
-wire [ 1 : 0]     exe_sys_jump_csr_addr2mem;
-wire              exe_xcpt_valid2mem;
-wire [ 3 : 0]     exe_xcpt_cause2mem;
-wire [XLEN-1 : 0] exe_xcpt_tval2mem;
-wire [XLEN-1 : 0] exe_pc2mem;
+// to Memory stage
+wire              exe2mem_regfile_we;
+wire              exe2mem_signex_sel;
+wire [ 4 : 0]     exe2mem_rd_addr;
+wire [ 2 : 0]     exe2mem_regfile_input_sel;
+wire [ 1 : 0]     exe2mem_dsize_sel;
+wire [XLEN-1 : 0] exe2mem_rs2_data;
+wire [XLEN-1 : 0] exe2mem_addr;
 
+wire              exe2mem_fetch_valid;
+wire              exe2mem_sys_jump;
+wire [ 1 : 0]     exe2mem_sys_jump_csr_addr;
+wire              exe2mem_xcpt_valid;
+wire [ 3 : 0]     exe2mem_xcpt_cause;
+wire [XLEN-1 : 0] exe2mem_xcpt_tval;
+wire [XLEN-1 : 0] exe2mem_pc;
+
+assign exe2mem_pc_o = exe2mem_pc;
 // ------------------------------
 //  Memory stage output signals
 // ------------------------------
@@ -212,13 +242,23 @@ wire [XLEN-1 : 0] mem_dataout;
 wire [ 3 : 0]     mem_byte_sel;
 wire              mem_align_exception;
 
-wire              mem_fetch_valid2wbk;
-wire              mem_sys_jump2wbk;
-wire [ 1 : 0]     mem_sys_jump_csr_addr2wbk;
-wire              mem_xcpt_valid2wbk;
-wire [ 3 : 0]     mem_xcpt_cause2wbk;
-wire [XLEN-1 : 0] mem_xcpt_tval2wbk;
-wire [XLEN-1 : 0] mem_pc2wbk;
+wire              mem2wbk_regfile_we;
+wire              mem2wbk_signex_sel;
+wire [ 4 : 0]     mem2wbk_rd_addr;
+wire [ 2 : 0]     mem2wbk_regfile_input_sel;
+wire [XLEN-1 : 0] mem2wbk_aligned_data;
+wire [XLEN-1 : 0] mem2wbk_p_data;
+
+wire              mem2wbk_fetch_valid;
+wire              mem2wbk_sys_jump;
+wire [ 1 : 0]     mem2wbk_sys_jump_csr_addr;
+wire              mem2wbk_xcpt_valid;
+wire [ 3 : 0]     mem2wbk_xcpt_cause;
+wire [XLEN-1 : 0] mem2wbk_xcpt_tval;
+wire [XLEN-1 : 0] mem2wbk_pc;
+wire              mem2wbk_csr_we;
+wire [11 : 0]     mem2wbk_csr_addr;
+wire [XLEN-1 : 0] mem2wbk_csr_data;
 
 // --------------------------------
 //  Writeback stage output signals
@@ -231,40 +271,47 @@ wire              wbk_csr_we;
 wire [11 : 0]     wbk_csr_addr;
 wire [XLEN-1 : 0] wbk_csr_data;
 
-wire              wbk_fetch_valid2csr;
-wire              wbk_sys_jump2csr;
-wire [ 1 : 0]     wbk_sys_jump_csr_addr2csr;
-wire              wbk_xcpt_valid2csr;
-wire [ 3 : 0]     wbk_xcpt_cause2csr;
-wire [XLEN-1 : 0] wbk_xcpt_tval2csr;
-wire [XLEN-1 : 0] wbk_pc2csr;
+wire              wbk2csr_fetch_valid;
+wire              wbk2csr_sys_jump;
+wire [ 1 : 0]     wbk2csr_sys_jump_csr_addr;
+wire              wbk2csr_xcpt_valid;
+wire [ 3 : 0]     wbk2csr_xcpt_cause;
+wire [XLEN-1 : 0] wbk2csr_xcpt_tval;
+wire [XLEN-1 : 0] wbk2csr_pc;
 
 // ---------------------------------
 //  Output signals from other units
 // ---------------------------------
-// Pipeline control (PLC)
-wire plc_flush2fet, plc_flush2dec, plc_flush2exe, plc_flush2wbk;
+// PipeLine Control (PLC) unit
+wire plc2fet_flush;
+wire plc2dec_flush;
+wire plc2exe_flush;
+wire plc2mem_flush;
+wire plc2wbk_flush;
 
-// Program counter unit (PCU)
+// Program Counter Unit (PCU)
 wire [XLEN-1 : 0] pcu_pc;
 
-// Forwarding unit (FWD)
-wire [XLEN-1 : 0] fwd_rs1, fwd_rs2;
-wire [XLEN-1 : 0] fwd_csr_data2exe;
+// ForWarding Unit (FWD)
+wire [XLEN-1 : 0] fwd_rs1;
+wire [XLEN-1 : 0] fwd_rs2;
+wire [XLEN-1 : 0] fwd2exe_csr_data;
 
 // Register File (RFU)
-wire [XLEN-1 : 0] rfu_rs1_data2dec, rfu_rs2_data2dec;
+wire [XLEN-1 : 0] rfu2dec_rs1_data;
+wire [XLEN-1 : 0] rfu2dec_rs2_data;
 
 // Control Status Registers (CSR)
 wire              csr_irq_taken;
 reg               csr_irq_taken_r;
 wire [XLEN-1 : 0] csr_pc_handler;
-wire [XLEN-1 : 0] csr_data2dec;
+wire [XLEN-1 : 0] csr2dec_data;
 wire              csr_sys_jump;
 wire [XLEN-1 : 0] csr_sys_jump_data;
 
 // Branch Prediction Unit (BPU)
-wire              bpu_branch_hit, bpu_branch_decision;
+wire              bpu_branch_hit;
+wire              bpu_branch_decision;
 wire [XLEN-1 : 0] bpu_branch_target_addr;
 
 // Misc. signals
@@ -277,7 +324,7 @@ wire [ 1 : 0]     privilege_level;
 //  Signals sent to the instruction & data memory IPs in the Aquila SoC
 //
 assign code_addr_o = pcu_pc;
-assign data_addr_o = exe_addr2mem;
+assign data_addr_o = exe2mem_addr;
 assign data_rw_o = exe_we;
 assign data_o = mem_dataout;
 assign data_byte_enable_o = mem_byte_sel;
@@ -335,19 +382,19 @@ end
 
 // =============================================================================
 always@(*) begin
-    if (!wbk_xcpt_valid2csr) begin
-        if (mem_fetch_valid2wbk)
-            nxt_unwb_PC = mem_pc2wbk;
-        else if (exe_fetch_valid2mem)
-            nxt_unwb_PC = exe_pc2mem;
-        else if (dec_fetch_valid2exe)
+    if (!wbk2csr_xcpt_valid) begin
+        if (mem2wbk_fetch_valid)
+            nxt_unwb_PC = mem2wbk_pc;
+        else if (exe2mem_fetch_valid)
+            nxt_unwb_PC = exe2mem_pc;
+        else if (dec2exe_fetch_valid)
             nxt_unwb_PC = dec_pc;
-        else if(fet_valid2dec)
-            nxt_unwb_PC = fet_pc2dec;
+        else if(fet2dec_valid)
+            nxt_unwb_PC = fet2dec_pc;
         else
             nxt_unwb_PC = pcu_pc;
     end else begin
-        nxt_unwb_PC = wbk_pc2csr;
+        nxt_unwb_PC = wbk2csr_pc;
     end
 end
 
@@ -442,7 +489,7 @@ pipeline_control Pipeline_Control(
     // from Decode
     .unsupported_instr_i(dec_unsupported_instr),
     .branch_hit_i(dec_branch_hit),
-    .is_load_hazard(dec_load_hazard2plc),
+    .is_load_hazard(dec2plc_load_hazard),
 
     // from Execute
     .branch_taken_i(exe_branch_taken),
@@ -453,16 +500,19 @@ pipeline_control Pipeline_Control(
     .sys_jump_i(csr_sys_jump),
 
     // to Fetch
-    .flush2fet_o(plc_flush2fet),
+    .flush2fet_o(plc2fet_flush),
 
     // to Decode
-    .flush2dec_o(plc_flush2dec),
+    .flush2dec_o(plc2dec_flush),
 
     // to Execute
-    .flush2exe_o(plc_flush2exe),
+    .flush2exe_o(plc2exe_flush),
+
+    // to Memory
+    .flush2mem_o(plc2mem_flush),
 
     // to Writeback
-    .flush2wbk_o(plc_flush2wbk),
+    .flush2wbk_o(plc2wbk_flush),
 
     // to PCU and Fetch
     .data_hazard_o(stall_data_hazard)
@@ -471,17 +521,17 @@ pipeline_control Pipeline_Control(
 // =============================================================================
 forwarding_unit Forwarding_Unit(
     // from Decode
-    .rs1_addr_i(dec_rs1_addr2fwd),
-    .rs2_addr_i(dec_rs2_addr2fwd),
-    .csr_addr_i(dec_csr_addr2fwd),
-    .rs1_data_i(dec_rs1_data2fwd),
-    .rs2_data_i(dec_rs2_data2fwd),
-    .csr_data_i(dec_csr_data2fwd),
+    .rs1_addr_i(dec2fwd_rs1_addr),
+    .rs2_addr_i(dec2fwd_rs2_addr),
+    .csr_addr_i(dec2fwd_csr_addr),
+    .rs1_data_i(dec2fwd_rs1_data),
+    .rs2_data_i(dec2fwd_rs2_data),
+    .csr_data_i(dec2fwd_csr_data),
 
     // from Execute
-    .exe_rd_addr_i(exe_rd_addr2wbk),
-    .exe_regfile_we_i(exe_regfile_we2wbk),
-    .exe_regfile_input_sel_i(exe_regfile_input_sel2wbk),
+    .exe_rd_addr_i(exe2mem_rd_addr),
+    .exe_regfile_we_i(exe2mem_regfile_we),
+    .exe_regfile_input_sel_i(exe2mem_regfile_input_sel),
     .exe_p_data_i(exe_p_data),
 
     .exe_csr_addr_i(exe_csr_addr),
@@ -493,14 +543,14 @@ forwarding_unit Forwarding_Unit(
     .wbk_regfile_we_i(wbk_rd_we),
     .wbk_rd_data_i(wbk_rd_data),
 
-    .wbk_csr_addr_i(wbk_csr_addr),
     .wbk_csr_we_i(wbk_csr_we),
+    .wbk_csr_addr_i(wbk_csr_addr),
     .wbk_csr_data_i(wbk_csr_data),
 
     // to Execute and CSR
     .rs1_o(fwd_rs1),
     .rs2_o(fwd_rs2),
-    .csr_data_o(fwd_csr_data2exe)
+    .csr_data_o(fwd2exe_csr_data)
 );
 
 // =============================================================================
@@ -537,8 +587,8 @@ reg_file Register_File(
     .rst_i(rst_i),
 
     // from Decode
-    .rs1_addr_i(dec_rs1_addr2rfu),
-    .rs2_addr_i(dec_rs2_addr2rfu),
+    .rs1_addr_i(dec2rfu_rs1_addr),
+    .rs2_addr_i(dec2rfu_rs2_addr),
 
     // from Writeback
     .rd_we_i(wbk_rd_we),
@@ -546,8 +596,8 @@ reg_file Register_File(
     .rd_data_i(wbk_rd_data),
 
     // to Decode
-    .rs1_data_o(rfu_rs1_data2dec),
-    .rs2_data_o(rfu_rs2_data2dec)
+    .rs1_data_o(rfu2dec_rs1_data),
+    .rs2_data_o(rfu2dec_rs2_data)
 );
 
 // =============================================================================
@@ -599,7 +649,7 @@ fetch Fetch(
     .stall_i(stall_pipeline || (stall_data_hazard && !irq_taken)),
 
     // from Pipeline Control and CSR
-    .flush_i(plc_flush2fet || irq_taken),
+    .flush_i(plc2fet_flush || irq_taken),
 
     // from BPU
     .branch_hit_i(bpu_branch_hit),
@@ -610,18 +660,18 @@ fetch Fetch(
 
     // PC of the current instruction.
     .pc_i(pcu_pc),
-    .pc_o(fet_pc2dec),
+    .pc_o(fet2dec_pc),
 
     // to Decode
-    .instruction_o(fet_instr2dec),
+    .instruction_o(fet2dec_instr),
     .branch_hit_o(fet_branch_hit),
     .branch_decision_o(fet_branch_decision),
 
      // Has instruction fetch being successiful?
-    .fetch_valid_o(fet_valid2dec),   // Validity of the Fetch stage.  
-    .xcpt_valid_o(fet_xcpt_valid2dec), // Any valid exception?
-    .xcpt_cause_o(fet_xcpt_cause2dec), // Cause of the exception (if any).
-    .xcpt_tval_o(fet_xcpt_tval2dec)    // Trap Value (if any).
+    .fetch_valid_o(fet2dec_valid),   // Validity of the Fetch stage.  
+    .xcpt_valid_o(fet2dec_xcpt_valid), // Any valid exception?
+    .xcpt_cause_o(fet2dec_xcpt_cause), // Cause of the exception (if any).
+    .xcpt_tval_o(fet2dec_xcpt_tval)    // Trap Value (if any).
 );
 
 // =============================================================================
@@ -632,91 +682,91 @@ decode Decode(
     .stall_i(stall_pipeline),
 
     // Processor pipeline flush signal.
-    .flush_i(plc_flush2dec || irq_taken),
+    .flush_i(plc2dec_flush || irq_taken),
 
     // Signals from Fetch.
-    .instruction_i(fet_instr2dec),
+    .instruction_i(fet2dec_instr),
     .branch_hit_i(fet_branch_hit),
     .branch_decision_i(fet_branch_decision),
 
     // Signals from CSR.
-    .csr_data_i(csr_data2dec),
+    .csr_data_i(csr2dec_data),
     .privilege_lvl_i(privilege_level),
 
     // Instruction operands from the Register File. To be forwarded.
-    .rs1_data_i(rfu_rs1_data2dec),
-    .rs2_data_i(rfu_rs2_data2dec),
+    .rs1_data_i(rfu2dec_rs1_data),
+    .rs2_data_i(rfu2dec_rs2_data),
 
     // Operand register IDs to the Register File
-    .rs1_addr_o(dec_rs1_addr2rfu),
-    .rs2_addr_o(dec_rs2_addr2rfu),
+    .rs1_addr_o(dec2rfu_rs1_addr),
+    .rs2_addr_o(dec2rfu_rs2_addr),
 
     // illegal instruction
     .unsupported_instr_o(dec_unsupported_instr),
 
     // to Execute
-    .imm_o(dec_imm2exe),
-    .csr_we_o(dec_csr_we2exe),
-    .csr_imm_o(dec_csr_imm2exe),
-    .inputA_sel_o(dec_inA_sel2exe),
-    .inputB_sel_o(dec_inB_sel2exe),
-    .operation_sel_o(dec_operation_sel2exe),
-    .alu_muldiv_sel_o(dec_alu_muldiv_sel2exe),
-    .shift_sel_o(dec_shift_sel2exe),
+    .imm_o(dec2exe_imm),
+    .csr_we_o(dec2exe_csr_we),
+    .csr_imm_o(dec2exe_csr_imm),
+    .inputA_sel_o(dec2exe_inA_sel),
+    .inputB_sel_o(dec2exe_inB_sel),
+    .operation_sel_o(dec2exe_operation_sel),
+    .alu_muldiv_sel_o(dec2exe_alu_muldiv_sel),
+    .shift_sel_o(dec2exe_shift_sel),
     .branch_hit_o(dec_branch_hit), //also to PLC and PCU
     .branch_decision_o(dec_branch_decision),
     .is_jalr_o(dec_is_jalr),
-    .is_fencei_o(dec_is_fencei2exe),
+    .is_fencei_o(dec2exe_is_fencei),
 
     // to Execute and BPU
     .is_branch_o(dec_is_branch),
     .is_jal_o(dec_is_jal),
 
     // to CSR
-    .csr_addr_o(dec_csr_addr2csr),
+    .csr_addr_o(dec2csr_csr_addr),
 
     // to Execute
-    .rd_addr_o(dec_rd_addr2exe),
-    .regfile_we_o(dec_regfile_we2exe),
-    .regfile_input_sel_o(dec_regfile_sel2exe),
-    .we_o(dec_we),
-    .re_o(dec_re),
-    .dsize_sel_o(dec_dsize_sel2exe),
-    .signex_sel_o(dec_signex_sel2exe),
-    .is_amo_o(dec_is_amo2exe),
-    .amo_type_o(dec_amo_type2exe),
+    .rd_addr_o(dec2exe_rd_addr),
+    .regfile_we_o(dec2exe_regfile_we),
+    .regfile_input_sel_o(dec2exe_regfile_sel),
+    .we_o(dec2exe_we),
+    .re_o(dec2exe_re),
+    .dsize_sel_o(dec2exe_dsize_sel),
+    .signex_sel_o(dec2exe_signex_sel),
+    .is_amo_o(dec2exe_is_amo),
+    .amo_type_o(dec2exe_amo_type),
 
     // to Pipeline Control
-    .is_load_hazard_o(dec_load_hazard2plc),
+    .is_load_hazard_o(dec2plc_load_hazard),
 
     // to Forwarding Unit
-    .rs1_addr2fwd_o(dec_rs1_addr2fwd),
-    .rs2_addr2fwd_o(dec_rs2_addr2fwd),
-    .rs1_data2fwd_o(dec_rs1_data2fwd),
-    .rs2_data2fwd_o(dec_rs2_data2fwd),
+    .rs1_addr2fwd_o(dec2fwd_rs1_addr),
+    .rs2_addr2fwd_o(dec2fwd_rs2_addr),
+    .rs1_data2fwd_o(dec2fwd_rs1_data),
+    .rs2_data2fwd_o(dec2fwd_rs2_data),
 
-    .csr_addr2fwd_o(dec_csr_addr2fwd), // also to Execute
-    .csr_data2fwd_o(dec_csr_data2fwd),
+    .csr_addr2fwd_o(dec2fwd_csr_addr), // also to Execute
+    .csr_data2fwd_o(dec2fwd_csr_data),
 
     // PC of the current instruction.
-    .pc_i(fet_pc2dec),
+    .pc_i(fet2dec_pc),
     .pc_o(dec_pc),
 
     // System Jump operation
-    .sys_jump_o(dec_sys_jump2exe),
-    .sys_jump_csr_addr_o(dec_sys_jump_csr_addr2exe),
+    .sys_jump_o(dec2exe_sys_jump),
+    .sys_jump_csr_addr_o(dec2exe_sys_jump_csr_addr),
 
     // Has instruction fetch being successiful?
-    .fetch_valid_i(fet_valid2dec),
-    .fetch_valid_o(dec_fetch_valid2exe),
+    .fetch_valid_i(fet2dec_valid),
+    .fetch_valid_o(dec2exe_fetch_valid),
 
     // Exception info passed from Fetch to Execute.
-    .xcpt_valid_i(fet_xcpt_valid2dec),
-    .xcpt_cause_i(fet_xcpt_cause2dec),
-    .xcpt_tval_i(fet_xcpt_tval2dec),
-    .xcpt_valid_o(dec_xcpt_valid2exe),
-    .xcpt_cause_o(dec_xcpt_cause2exe),
-    .xcpt_tval_o(dec_xcpt_tval2exe)
+    .xcpt_valid_i(fet2dec_xcpt_valid),
+    .xcpt_cause_i(fet2dec_xcpt_cause),
+    .xcpt_tval_i(fet2dec_xcpt_tval),
+    .xcpt_valid_o(dec2exe_xcpt_valid),
+    .xcpt_cause_o(dec2exe_xcpt_cause),
+    .xcpt_tval_o(dec2exe_xcpt_tval)
 );
 
 // =============================================================================
@@ -729,40 +779,40 @@ execute Execute(
     .stall_i(stall_instr_fetch | stall_data_fetch),
 
     // Processor pipeline flush signal.
-    .flush_i(plc_flush2exe || irq_taken),
+    .flush_i(plc2exe_flush || irq_taken),
 
     // Signals from the Decode stage.
-    .imm_i(dec_imm2exe),
-    .inputA_sel_i(dec_inA_sel2exe),
-    .inputB_sel_i(dec_inB_sel2exe),
-    .operation_sel_i(dec_operation_sel2exe),
-    .alu_muldiv_sel_i(dec_alu_muldiv_sel2exe),
-    .shift_sel_i(dec_shift_sel2exe),
+    .imm_i(dec2exe_imm),
+    .inputA_sel_i(dec2exe_inA_sel),
+    .inputB_sel_i(dec2exe_inB_sel),
+    .operation_sel_i(dec2exe_operation_sel),
+    .alu_muldiv_sel_i(dec2exe_alu_muldiv_sel),
+    .shift_sel_i(dec2exe_shift_sel),
     .is_branch_i(dec_is_branch),
     .is_jal_i(dec_is_jal),
     .is_jalr_i(dec_is_jalr),
-    .is_fencei_i(dec_is_fencei2exe),
+    .is_fencei_i(dec2exe_is_fencei),
     .branch_hit_i(dec_branch_hit),
     .branch_decision_i(dec_branch_decision),
 
-    .regfile_we_i(dec_regfile_we2exe),
-    .regfile_input_sel_i(dec_regfile_sel2exe),
-    .we_i(dec_we),
-    .re_i(dec_re),
-    .dsize_sel_i(dec_dsize_sel2exe),
-    .signex_sel_i(dec_signex_sel2exe),
-    .rd_addr_i(dec_rd_addr2exe),
-    .is_amo_i(dec_is_amo2exe),
-    .amo_type_i(dec_amo_type2exe),
+    .regfile_we_i(dec2exe_regfile_we),
+    .regfile_input_sel_i(dec2exe_regfile_sel),
+    .we_i(dec2exe_we),
+    .re_i(dec2exe_re),
+    .dsize_sel_i(dec2exe_dsize_sel),
+    .signex_sel_i(dec2exe_signex_sel),
+    .rd_addr_i(dec2exe_rd_addr),
+    .is_amo_i(dec2exe_is_amo),
+    .amo_type_i(dec2exe_amo_type),
 
-    .csr_imm_i(dec_csr_imm2exe),
-    .csr_we_i(dec_csr_we2exe),
-    .csr_we_addr_i(dec_csr_addr2fwd),
+    .csr_imm_i(dec2exe_csr_imm),
+    .csr_we_i(dec2exe_csr_we),
+    .csr_we_addr_i(dec2fwd_csr_addr),
 
     // Signals from the Forwarding Unit.
     .rs1_data_i(fwd_rs1),
     .rs2_data_i(fwd_rs2),
-    .csr_data_i(fwd_csr_data2exe),
+    .csr_data_i(fwd2exe_csr_data),
 
     // Branch prediction singnals to PLC, PCU, and BPU.
     .is_branch_o(exe_is_branch2bpu),
@@ -783,83 +833,114 @@ execute Execute(
     .amo_type_o(exe_amo_type2mem),
 
     // Signals to the Memory stage.
-    .rs2_data_o(exe_rs2_data2mem),
-    .addr_o(exe_addr2mem),
-    .dsize_sel_o(exe_dsize_sel2mem),
+    .rs2_data_o(exe2mem_rs2_data),
+    .addr_o(exe2mem_addr),
+    .dsize_sel_o(exe2mem_dsize_sel),
 
-    // Signals to the Memory Writeback and the Forwarding Units.
-    .regfile_we_o(exe_regfile_we2wbk),
-    .regfile_input_sel_o(exe_regfile_input_sel2wbk),
-    .rd_addr_o(exe_rd_addr2wbk),
+    // Signals to the Memory, Writeback stages and the Forwarding Units.
+    .regfile_we_o(exe2mem_regfile_we),
+    .regfile_input_sel_o(exe2mem_regfile_input_sel),
+    .rd_addr_o(exe2mem_rd_addr),
+    .signex_sel_o(exe2mem_signex_sel),
     .p_data_o(exe_p_data),
 
     .csr_we_o(exe_csr_we),
     .csr_we_addr_o(exe_csr_addr),
     .csr_we_data_o(exe_csr_data),
 
-    // Signals to Memory Writeback.
-    .signex_sel_o(exe_signex_sel2wbk),
-
     // PC of the current instruction.
     .pc_i(dec_pc),
-    .pc_o(exe_pc2mem),
+    .pc_o(exe2mem_pc),
 
-    // System Jump operation
-    .sys_jump_i(dec_sys_jump2exe),
-    .sys_jump_csr_addr_i(dec_sys_jump_csr_addr2exe),
-    .sys_jump_o(exe_sys_jump2mem),
-    .sys_jump_csr_addr_o(exe_sys_jump_csr_addr2mem),
+    // System Jump operations
+    .sys_jump_i(dec2exe_sys_jump),
+    .sys_jump_o(exe2mem_sys_jump),
+    .sys_jump_csr_addr_i(dec2exe_sys_jump_csr_addr),
+    .sys_jump_csr_addr_o(exe2mem_sys_jump_csr_addr),
 
     // Has instruction fetch being successiful?
-    .fetch_valid_i(dec_fetch_valid2exe),
-    .fetch_valid_o(exe_fetch_valid2mem),
+    .fetch_valid_i(dec2exe_fetch_valid),
+    .fetch_valid_o(exe2mem_fetch_valid),
 
     // Exception info passed from Decode to Memory.
-    .xcpt_valid_i(dec_xcpt_valid2exe),
-    .xcpt_cause_i(dec_xcpt_cause2exe),
-    .xcpt_tval_i(dec_xcpt_tval2exe),
-    .xcpt_valid_o(exe_xcpt_valid2mem),
-    .xcpt_cause_o(exe_xcpt_cause2mem),
-    .xcpt_tval_o(exe_xcpt_tval2mem)
+    .xcpt_valid_i(dec2exe_xcpt_valid),
+    .xcpt_cause_i(dec2exe_xcpt_cause),
+    .xcpt_tval_i(dec2exe_xcpt_tval),
+    .xcpt_valid_o(exe2mem_xcpt_valid),
+    .xcpt_cause_o(exe2mem_xcpt_cause),
+    .xcpt_tval_o(exe2mem_xcpt_tval)
 );
 
 // =============================================================================
 memory Memory(
-    // from Execute
-    .mem_addr_i(exe_addr2mem),
-    .unaligned_data_i(exe_rs2_data2mem),      // store value
-    .dsize_sel_i(exe_dsize_sel2mem),
+    // Top-level system signals
+    .clk_i(clk_i),
+    .rst_i(rst_i),
+    .stall_i(stall_pipeline),
+
+    // Writeback stage flush signal.
+    .flush_i(plc2mem_flush || irq_taken),
+
+    // from Execute stage
+    .mem_addr_i(exe2mem_addr),
+    .unaligned_data_i(exe2mem_rs2_data),      // store value
+    .dsize_sel_i(exe2mem_dsize_sel),
     .we_i(exe_we),
     .re_i(exe_re),
+    .p_data_i(exe_p_data),
+
+    .regfile_we_i(exe2mem_regfile_we),
+    .regfile_input_sel_i(exe2mem_regfile_input_sel),
+    .rd_addr_i(exe2mem_rd_addr),
+    .signex_sel_i(exe2mem_signex_sel),
+
+    .csr_we_i(exe_csr_we),
+    .csr_we_addr_i(exe_csr_addr),
+    .csr_we_data_i(exe_csr_data),
+
+    // from D-memory
+    .m_data_i(data_read2wbk),
 
     // to D-memory
     .data_o(mem_dataout),                     // data_write
     .byte_sel_o(mem_byte_sel),
 
+    // to Writeback stage
+    .regfile_we_o(mem2wbk_regfile_we),
+    .regfile_input_sel_o(mem2wbk_regfile_input_sel),
+    .rd_addr_o(mem2wbk_rd_addr),
+    .signex_sel_o(mem2wbk_signex_sel),
+    .aligned_data_o(mem2wbk_aligned_data),
+    .p_data_o(mem2wbk_p_data),
+
+    .csr_we_o(mem2wbk_csr_we),
+    .csr_we_addr_o(mem2wbk_csr_addr),
+    .csr_we_data_o(mem2wbk_csr_data),
+
     // Exception signal for memory mis-alignment.
     .mem_align_exception_o(mem_align_exception),
 
     // PC of the current instruction.
-    .pc_i(exe_pc2mem),
-    .pc_o(mem_pc2wbk),
+    .pc_i(exe2mem_pc),
+    .pc_o(mem2wbk_pc),
 
-    // System Jump operation
-    .sys_jump_i(exe_sys_jump2mem),
-    .sys_jump_csr_addr_i(exe_sys_jump_csr_addr2mem),
-    .sys_jump_o(mem_sys_jump2wbk),
-    .sys_jump_csr_addr_o(mem_sys_jump_csr_addr2wbk),
+    // System Jump operations
+    .sys_jump_i(exe2mem_sys_jump),
+    .sys_jump_o(mem2wbk_sys_jump),
+    .sys_jump_csr_addr_i(exe2mem_sys_jump_csr_addr),
+    .sys_jump_csr_addr_o(mem2wbk_sys_jump_csr_addr),
 
     // Has instruction fetch being successiful?
-    .fetch_valid_i(exe_fetch_valid2mem),
-    .fetch_valid_o(mem_fetch_valid2wbk),
+    .fetch_valid_i(exe2mem_fetch_valid),
+    .fetch_valid_o(mem2wbk_fetch_valid),
 
     // Exception info passed from Execute to Writeback.
-    .xcpt_valid_i(exe_xcpt_valid2mem),
-    .xcpt_cause_i(exe_xcpt_cause2mem),
-    .xcpt_tval_i(exe_xcpt_tval2mem),
-    .xcpt_valid_o(mem_xcpt_valid2wbk),
-    .xcpt_cause_o(mem_xcpt_cause2wbk),
-    .xcpt_tval_o(mem_xcpt_tval2wbk)
+    .xcpt_valid_i(exe2mem_xcpt_valid),
+    .xcpt_cause_i(exe2mem_xcpt_cause),
+    .xcpt_tval_i(exe2mem_xcpt_tval),
+    .xcpt_valid_o(mem2wbk_xcpt_valid),
+    .xcpt_cause_o(mem2wbk_xcpt_cause),
+    .xcpt_tval_o(mem2wbk_xcpt_tval)
 );
 
 // =============================================================================
@@ -870,22 +951,19 @@ writeback Writeback(
     .stall_i(stall_pipeline),
 
     // Writeback stage flush signal.
-    .flush_i(plc_flush2wbk || irq_taken),
+    .flush_i(plc2wbk_flush || irq_taken),
 
-    // from Execute
-    .regfile_we_i(exe_regfile_we2wbk),
-    .rd_addr_i(exe_rd_addr2wbk),
-    .regfile_input_sel_i(exe_regfile_input_sel2wbk),
-    .signex_sel_i(exe_signex_sel2wbk),
-    .addr_alignment_i(exe_addr2mem[1: 0]),
-    .p_data_i(exe_p_data),
+    // from Memory stage
+    .regfile_we_i(mem2wbk_regfile_we),
+    .regfile_input_sel_i(mem2wbk_regfile_input_sel),
+    .rd_addr_i(mem2wbk_rd_addr),
+    .signex_sel_i(mem2wbk_signex_sel),
+    .aligned_data_i(mem2wbk_aligned_data),
+    .p_data_i(mem2wbk_p_data),
 
-    .csr_we_i(exe_csr_we),
-    .csr_we_addr_i(exe_csr_addr),
-    .csr_we_data_i(exe_csr_data),
-
-    // from D-memory
-    .m_data_i(data_read2wbk),
+    .csr_we_i(mem2wbk_csr_we),
+    .csr_we_addr_i(mem2wbk_csr_addr),
+    .csr_we_data_i(mem2wbk_csr_data),
 
     // to Register File and Forwarding Unit
     .rd_we_o(wbk_rd_we),
@@ -893,18 +971,18 @@ writeback Writeback(
     .rd_data_o(wbk_rd_data),
 
     // PC of the current instruction.
-    .pc_i(mem_pc2wbk),
-    .pc_o(wbk_pc2csr),
+    .pc_i(mem2wbk_pc),
+    .pc_o(wbk2csr_pc),
 
-    // System Jump operation
-    .sys_jump_i(mem_sys_jump2wbk),
-    .sys_jump_csr_addr_i(mem_sys_jump_csr_addr2wbk),
-    .sys_jump_o(wbk_sys_jump2csr),
-    .sys_jump_csr_addr_o(wbk_sys_jump_csr_addr2csr),
+    // System Jump operations
+    .sys_jump_i(mem2wbk_sys_jump),
+    .sys_jump_o(wbk2csr_sys_jump),
+    .sys_jump_csr_addr_i(mem2wbk_sys_jump_csr_addr),
+    .sys_jump_csr_addr_o(wbk2csr_sys_jump_csr_addr),
 
     // Has instruction fetch being successiful?
-    .fetch_valid_i(mem_fetch_valid2wbk),
-    .fetch_valid_o(wbk_fetch_valid2csr),
+    .fetch_valid_i(mem2wbk_fetch_valid),
+    .fetch_valid_o(wbk2csr_fetch_valid),
 
     // to CSR and FWD
     .csr_we_o(wbk_csr_we),
@@ -912,12 +990,12 @@ writeback Writeback(
     .csr_we_data_o(wbk_csr_data),
 
     // Exception info passed from Memory to CSR.
-    .xcpt_valid_i(mem_xcpt_valid2wbk),
-    .xcpt_cause_i(mem_xcpt_cause2wbk),
-    .xcpt_tval_i(mem_xcpt_tval2wbk),
-    .xcpt_valid_o(wbk_xcpt_valid2csr),
-    .xcpt_cause_o(wbk_xcpt_cause2csr),
-    .xcpt_tval_o(wbk_xcpt_tval2csr)
+    .xcpt_valid_i(mem2wbk_xcpt_valid),
+    .xcpt_cause_i(mem2wbk_xcpt_cause),
+    .xcpt_tval_i(mem2wbk_xcpt_tval),
+    .xcpt_valid_o(wbk2csr_xcpt_valid),
+    .xcpt_cause_o(wbk2csr_xcpt_cause),
+    .xcpt_tval_o(wbk2csr_xcpt_tval)
 );
 
 // =============================================================================
@@ -928,10 +1006,10 @@ CSR(
     .rst_i(rst_i),
 
     // from Decode
-    .csr_raddr_i(dec_csr_addr2csr),
+    .csr_raddr_i(dec2csr_csr_addr),
 
     // to Decode
-    .csr_data_o(csr_data2dec),
+    .csr_data_o(csr2dec_data),
 
     // from Writeback
     .csr_we_i(wbk_csr_we),
@@ -947,11 +1025,11 @@ CSR(
     .nxt_unwb_PC_i(nxt_unwb_PC),
 
     // PC of the current instruction.
-    .pc_i(wbk_pc2csr),
+    .pc_i(wbk2csr_pc),
 
     // System Jump operation
-    .sys_jump_i(wbk_sys_jump2csr),
-    .sys_jump_csr_addr_i(wbk_sys_jump_csr_addr2csr),
+    .sys_jump_i(wbk2csr_sys_jump),
+    .sys_jump_csr_addr_i(wbk2csr_sys_jump_csr_addr),
     .sys_jump_csr_data_o(csr_sys_jump_data),
     .sys_jump_o(csr_sys_jump),
 
@@ -959,9 +1037,9 @@ CSR(
     .privilege_level_o(privilege_level),
 
     // Exception requests
-    .xcpt_valid_i(wbk_xcpt_valid2csr),
-    .xcpt_cause_i(wbk_xcpt_cause2csr),
-    .xcpt_tval_i(wbk_xcpt_tval2csr)
+    .xcpt_valid_i(wbk2csr_xcpt_valid),
+    .xcpt_cause_i(wbk2csr_xcpt_cause),
+    .xcpt_tval_i(wbk2csr_xcpt_tval)
 );
 
 endmodule

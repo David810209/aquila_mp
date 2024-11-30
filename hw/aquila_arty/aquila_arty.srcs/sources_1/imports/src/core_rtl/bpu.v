@@ -10,14 +10,16 @@
 //  Revision information:
 //
 //  Aug/15/2020, by Chun-Jen Tsai:
-//    Hanlding of JAL in this BPU. In the original code, an additional
-//    Unconditional Branch Prediction Unit (UC-BPU) was used to handle
-//    the JAL instruction, which seemed redundant.
+//    Using a single BPU to handle both JAL and Branch instructions. In the
+//    original code, an additional Unconditional Branch Prediction Unit (UC-BPU)
+//    was used to handle the JAL instructions.
 //
 // Aug/16/2023, by Chun-Jen Tsai:
-//    Replace the fully associative BHT by the standard Bimodal BHT table.
-//    The performance drops a little (1.0 DMIPS -> 0.97 DMIPS), but the resource 
-//    usage drops significantly.
+//    Replace the fully associative BHT by a TAG-based direct-mapping BHT table.
+//    The 2-bit Bimodal FSM is still used. The performance drops a little (0.03
+//    DMIPS), but the resource usage drops significantly. Note that we do not
+//    have to use TAGged memory for direct-mapping BHT. We simply use it to
+//    demonstrate how TAG memory can be implemented.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -91,21 +93,22 @@ module bpu #( parameter ENTRY_NUM = 64, parameter XLEN = 32 )
 
 localparam NBITS = $clog2(ENTRY_NUM);
 
-wire                    we;
-wire [XLEN-1 : 0]       branch_inst_tag;
 wire [NBITS-1 : 0]      read_addr;
 wire [NBITS-1 : 0]      write_addr;
+wire [XLEN-1 : 0]       branch_inst_tag;
+wire                    we;
+reg                     BHT_hit_ff, BHT_hit;
 
 // two-bit saturating counter
 reg  [1 : 0]            branch_likelihood[ENTRY_NUM-1 : 0];
 
 // "we" is enabled to add a new entry to the BHT table when
-// the decoder sees a branch instruction for the first time.
+// the decoded branch instruction is not in the BHT.
 // CY Hsiang 0220_2020: added "~stall_i" to "we ="
-assign we = ~stall_i & (is_cond_branch_i | is_jal_i) & (branch_inst_tag != dec_pc_i);
+assign we = ~stall_i & (is_cond_branch_i | is_jal_i) & !BHT_hit;
 
-assign read_addr = pc_i[NBITS+2 : 2];
-assign write_addr = dec_pc_i[NBITS+2 : 2];
+assign read_addr = pc_i[NBITS+1 : 2];
+assign write_addr = dec_pc_i[NBITS+1 : 2];
 
 integer idx;
 
@@ -171,6 +174,20 @@ BPU_BHT(
     .data_i({branch_target_addr_i, dec_pc_i}), // Input is not used when 'we' is 0.
     .data_o({branch_target_addr_o, branch_inst_tag})
 );
+
+// Delay the BHT hit flag at the Fetch stage for two clock cycles (plus stalls)
+// such that it can be reused at the Execute stage for BHT update operation.
+always @ (posedge clk_i)
+begin
+    if (rst_i) begin
+        BHT_hit_ff <= 1'b0;
+        BHT_hit <= 1'b0;
+    end
+    else if (!stall_i) begin
+        BHT_hit_ff <= branch_hit_o;
+        BHT_hit <= BHT_hit_ff;
+    end
+end
 
 // ===========================================================================
 //  Outputs signals

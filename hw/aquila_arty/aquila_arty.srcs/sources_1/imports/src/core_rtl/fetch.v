@@ -130,6 +130,9 @@ begin
         instruction_o = instruction_i;
 end
 
+// ===============================================================================
+//  Output registers to the Decode stage
+//
 always @(posedge clk_i)
 begin
     if (rst_i)

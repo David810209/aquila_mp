@@ -539,7 +539,7 @@ always @(*) begin
 end
 
 //remote core write done 
-// 為什麼write done是valid ?
+//write done -> 把valid設成0
 always @(*) begin
     if(PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all) // MESI: M/E/S -> I
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
@@ -569,7 +569,6 @@ always @(*) begin
     if(PROBE_S == PROBE_Check && probe_cache_hit) // MESI: M/E -> S
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             probe_share_write[idx] = probe_way_hit[idx];
-    // 為什麼invalid是share
     else if(PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all) // MESI: S -> I
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             probe_share_write[idx] = probe_way_hit[idx];
@@ -728,7 +727,7 @@ begin
         RdfromMem: // Check the cache of the other core at the same time
             if((probe_shared_i && probe_shared_ready_i) || probe_shared_r)
                 S_nxt = RdfromOtherFinish;
-            else if (!probe_shared_i && m_ready_i && !previous_ready)
+            else if (!probe_shared_i && m_ready_i && !previous_ready) //previous ready??
                 S_nxt = RdfromMemFinish;
             else
                 S_nxt = RdfromMem;
@@ -1363,6 +1362,8 @@ endgenerate
 //=======================================================
 //  Valid bits storage in distributed RAM
 //=======================================================
+// MES: 1
+// I: 0
 genvar k;
 generate
     for (k = 0; k < N_WAYS; k = k + 1)
@@ -1371,7 +1372,10 @@ generate
              VALID_RAM(
                  .clk_i(clk_i),
                  .we_i(valid_write[k] | probe_valid_write[k]),
+                  //PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all => remote core write done
                  .data_i((S == Init || (PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all) || OtherWt_same_addr)? 1'b0 : 
+                  //
+                  // (S == Analysis && cache_hit && (probe_same_wt_i == 'b11)) ?? why
                            (S == RdfromMem && (m_ready_i || (probe_shared_i && probe_shared_ready_i) || probe_shared_r) && !probe_same_wt_hi) || 
                            (S == Analysis && cache_hit && (probe_same_wt_i == 'b11))),
                  .write_addr_i((S == Init)? init_count : ((PROBE_S == PROBE_Update && probe_valid_write[k]) ? probe_line_index_r : line_index)),
@@ -1388,6 +1392,8 @@ endgenerate
 //=======================================================
 //  Dirty bits storage in distributed RAM 
 //=======================================================
+// ESI: 0
+// M: 1
 genvar m;
 generate
     for (m = 0; m < N_WAYS; m = m + 1)
@@ -1396,7 +1402,9 @@ generate
              DIRTY_RAM(
                  .clk_i(clk_i),
                  .we_i(dirty_write[m] | probe_dirty_write[m]),
+                 //I
                  .data_i((S == Init || (PROBE_S == PROBE_Update && probe_cache_hit && !probe_same_wt_all) ||
+                            //
                            (PROBE_S == PROBE_Check && probe_cache_hit && probe_needtoWb_w) ||
                            (S_nxt == WbtoMemFinish && m_ready_i && !p_rw_r) ||
                            (S_nxt == WbtoMemAllFinish) || (PROBE_WB_S == WbtoMemFinish) || probe_same_wt_hi)? 1'b0 : 1'b1),
@@ -1415,6 +1423,8 @@ endgenerate
 //=======================================================
 //  Share bits storage in distributed RAM
 //=======================================================
+// MEI: 0
+// S: 1
 genvar n;
 generate
     for (n = 0; n < N_WAYS; n = n + 1)

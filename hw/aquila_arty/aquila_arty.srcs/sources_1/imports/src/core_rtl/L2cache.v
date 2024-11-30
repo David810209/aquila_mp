@@ -671,31 +671,31 @@ end
 // Output signals
 
 //////////debug區///////////////////////////////////
-(* mark_debug = "true" *) reg [15:0] p0_cnt, p1_cnt;
-(* mark_debug = "true" *) reg [15:0] p0_same_cnt, p1_same_cnt;
-reg p0_cnt_flag;
-reg p1_cnt_flag;
-reg p0_same_cnt_flag;
-reg p1_same_cnt_flag;
-initial begin
-    p0_cnt_flag = 0;
-    p1_cnt_flag = 0;
-    p0_cnt = 0;
-    p1_cnt = 0;
-    p0_same_cnt_flag = 0;
-    p1_same_cnt_flag = 0;
-    p0_same_cnt = 0;
-    p1_same_cnt = 0;
-end
-always @(posedge clk_i)begin
-    if(p0_cnt_flag) p0_cnt <= p0_cnt + 1;
-    if(p1_cnt_flag) p1_cnt <= p1_cnt + 1;
-    if(p0_same_cnt_flag) p0_same_cnt <= p0_same_cnt + 1;
-    if(p1_same_cnt_flag) p1_same_cnt <= p1_same_cnt + 1;
-end
+// (* mark_debug = "true" *) reg [15:0] p0_cnt, p1_cnt;
+// (* mark_debug = "true" *) reg [15:0] p0_same_cnt, p1_same_cnt;
+// reg p0_cnt_flag;
+// reg p1_cnt_flag;
+// reg p0_same_cnt_flag;
+// reg p1_same_cnt_flag;
+// initial begin
+//     p0_cnt_flag = 0;
+//     p1_cnt_flag = 0;
+//     p0_cnt = 0;
+//     p1_cnt = 0;
+//     p0_same_cnt_flag = 0;
+//     p1_same_cnt_flag = 0;
+//     p0_same_cnt = 0;
+//     p1_same_cnt = 0;
+// end
+// always @(posedge clk_i)begin
+//     if(p0_cnt_flag) p0_cnt <= p0_cnt + 1;
+//     if(p1_cnt_flag) p1_cnt <= p1_cnt + 1;
+//     if(p0_same_cnt_flag) p0_same_cnt <= p0_same_cnt + 1;
+//     if(p1_same_cnt_flag) p1_same_cnt <= p1_same_cnt + 1;
+// end
 ////debug/////////////////////////////
 
-reg [4:0] t; //??沒用
+// reg [4:0] t; //??沒用
 always @(*)
 begin // Note: P0_L1_data_o is significant when processor read data
     if ( (P0_S == Analysis) && P0_cache_hit && !P0_rw_r)begin
@@ -707,11 +707,11 @@ begin // Note: P0_L1_data_o is significant when processor read data
             //看為什麼要判斷這個 理論上這裡same_rd_done要是1
             if(same_rd_done)begin
                 P0_L1_data_o = P1_c_block[P1_victim_sel];
-                p0_same_cnt_flag= 1;
+                // p0_same_cnt_flag= 1;
             end
             else begin
                 P0_L1_data_o = P1_m_data;
-                p0_cnt_flag = 1;
+                // p0_cnt_flag = 1;
             end
         end
         else begin
@@ -734,10 +734,10 @@ begin // Note: P1_L1_data_o is significant when processor read data
             //看為什麼要判斷這個 理論上這裡same_rd_done要是1
             if(same_rd_done) begin
                 P1_L1_data_o = P0_c_block[P0_victim_sel];
-                p1_same_cnt_flag = 1;
+                // p1_same_cnt_flag = 1;
             end
             else begin
-                p1_cnt_flag = 1;
+                // p1_cnt_flag = 1;
                 P1_L1_data_o = P0_m_data;
             end
         end

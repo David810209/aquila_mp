@@ -817,6 +817,8 @@ generate
             .clk_core(clk),
             .clk_memc(ui_clk),
             .rst_i(rst),
+            // .rst_core_i(rst),
+            // .rst_memc_i(ui_rst),
 
             .P_strobe_i(L2_MEM_strobe[i]),
             .P_addr_i(L2_MEM_addr[i]),
@@ -842,6 +844,7 @@ mem_arbiter Memory_Arbiter
     // System signals
     .clk_i(ui_clk),
     .rst_i(rst),
+    // .rst_i(ui_rst),
 
     // Aquila M_P0_CACHE master port interface signals
     .P0_MEM_strobe_i(MEM_strobe_ui_clk[0]),

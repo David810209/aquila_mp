@@ -404,64 +404,65 @@ end
 
 
 /************* Read/Write Miss **************/
-//沒用?
-// read data
-always @(posedge clk_i) begin
-    if(rst_i) 
-        P0_broadcast_data_rd_r <= 0;   
-    else if (P1_S == ProbeWait)
-        P0_broadcast_data_rd_r <= P0_broadcast_data_rd_i;   
-    else if (P1_S == Idle)
-        P0_broadcast_data_rd_r <= 0;       
-end
-//沒用?
-always @(posedge clk_i) begin
-    if(rst_i) 
-        P1_broadcast_data_rd_r <= 0;   
-    else if (P0_S == ProbeWait)
-        P1_broadcast_data_rd_r <= P1_broadcast_data_rd_i;   
-    else if (P0_S == Idle)
-        P1_broadcast_data_rd_r <= 0;       
-end
+// //沒用?
+// // read data
+// always @(posedge clk_i) begin
+//     if(rst_i) 
+//         P0_broadcast_data_rd_r <= 0;   
+//     else if (P1_S == ProbeWait)
+//         P0_broadcast_data_rd_r <= P0_broadcast_data_rd_i;   
+//     else if (P1_S == Idle)
+//         P0_broadcast_data_rd_r <= 0;       
+// end
+// //沒用?
+// always @(posedge clk_i) begin
+//     if(rst_i) 
+//         P1_broadcast_data_rd_r <= 0;   
+//     else if (P0_S == ProbeWait)
+//         P1_broadcast_data_rd_r <= P1_broadcast_data_rd_i;   
+//     else if (P0_S == Idle)
+//         P1_broadcast_data_rd_r <= 0;       
+// end
 
-// share
-//沒用?
-always @(posedge clk_i) begin
-    if(rst_i) 
-        P0_broadcast_shared_r <= 0;   
-    else if (P0_broadcast_shared_i)
-        P0_broadcast_shared_r <= 1;  
-    else
-        P0_broadcast_shared_r <= 0;  
-end
+// // share
+// //沒用?////////////////////////
+// always @(posedge clk_i) begin
+//     if(rst_i) 
+//         P0_broadcast_shared_r <= 0;   
+//     else if (P0_broadcast_shared_i)
+//         P0_broadcast_shared_r <= 1;  
+//     else
+//         P0_broadcast_shared_r <= 0;  
+// end
 
-//沒用?
-always @(posedge clk_i) begin
-    if(rst_i) 
-        P1_broadcast_shared_r <= 0;   
-    else if (P1_broadcast_shared_i)
-        P1_broadcast_shared_r <= 1;  
-    else
-        P1_broadcast_shared_r <= 0;  
-end
-//沒用?
-always @(posedge clk_i) begin
-    if(rst_i) 
-        P0_broadcast_shared_ready_r <= 0;   
-    else if (P0_broadcast_shared_ready_i)
-        P0_broadcast_shared_ready_r <= 1;  
-    else
-        P0_broadcast_shared_ready_r <= 0;  
-end
-//沒用?
-always @(posedge clk_i) begin
-    if(rst_i) 
-        P1_broadcast_shared_ready_r <= 0;   
-    else if (P1_broadcast_shared_ready_i)
-        P1_broadcast_shared_ready_r <= 1;  
-    else
-        P1_broadcast_shared_ready_r <= 0;  
-end
+// //沒用?////////////////
+// always @(posedge clk_i) begin
+//     if(rst_i) 
+//         P1_broadcast_shared_r <= 0;   
+//     else if (P1_broadcast_shared_i)
+//         P1_broadcast_shared_r <= 1;  
+//     else
+//         P1_broadcast_shared_r <= 0;  
+// end
+// //沒用? ////////////////////////////////////////////
+// always @(posedge clk_i) begin
+//     if(rst_i) 
+//         P0_broadcast_shared_ready_r <= 0;   
+//     else if (P0_broadcast_shared_ready_i)
+//         P0_broadcast_shared_ready_r <= 1;  
+//     else
+//         P0_broadcast_shared_ready_r <= 0;  
+// end
+// //沒用?
+// always @(posedge clk_i) begin
+//     if(rst_i) 
+//         P1_broadcast_shared_ready_r <= 0;   
+//     else if (P1_broadcast_shared_ready_i)
+//         P1_broadcast_shared_ready_r <= 1;  
+//     else
+//         P1_broadcast_shared_ready_r <= 0;  
+// end
+////////////////////////////////////////////////////////
 
 /* same write request at the same time*/
 always @(posedge clk_i) begin

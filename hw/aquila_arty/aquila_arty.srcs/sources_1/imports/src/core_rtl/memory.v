@@ -12,6 +12,10 @@
 //  Aug/17/2020, by Chun-Jen Tsai:
 //    Rename the old module 'memory_alignment' to 'memory' and rename the
 //    port signals.
+//
+//  Aug/20/2024, by Chun-Jen Tsai:
+//    Modify the Memory stage's I/O ports and sequential blocks so that
+//    it matches the coding style of the other stages.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -58,12 +62,39 @@
 
 module memory #( parameter XLEN = 32 )
 (
-    // From Execute
+    //  Processor clock and reset signals.
+    input                   clk_i,
+    input                   rst_i,
+
+    // Pipeline stall signal.
+    input                   stall_i,
+
+    // Pipeline flush signal.
+    input                   flush_i,
+
+    // Passing signals from Execute to Writeback
+    input  [ 2 : 0]         regfile_input_sel_i,
+    output reg [ 2 : 0]     regfile_input_sel_o,
+
+
+    // From Execute stage
     input  [XLEN-1 : 0]     mem_addr_i,
     input  [1 : 0]          dsize_sel_i,      // data size (8, 16, or 32-bit)
     input  [XLEN-1 : 0]     unaligned_data_i, // from rs2
     input                   we_i,
     input                   re_i,
+
+    input                   regfile_we_i,
+    input  [ 4 : 0]         rd_addr_i,
+    input                   signex_sel_i,
+    input  [XLEN-1 : 0]     p_data_i,
+
+    input                   csr_we_i,
+    input  [11: 0]          csr_we_addr_i,
+    input  [XLEN-1 : 0]     csr_we_data_i,
+
+    // from D-memory
+    input  [XLEN-1 : 0]     m_data_i,
 
     // To D-memory
     output reg [XLEN-1 : 0] data_o,           // data to write
@@ -72,9 +103,21 @@ module memory #( parameter XLEN = 32 )
     // Indicating memory mis-alignment exception
     output reg              mem_align_exception_o,
 
+    // To Writeback stage
+    output reg              regfile_we_o,
+    output reg [ 4 : 0]     rd_addr_o,
+    output reg              signex_sel_o,
+
+    output reg [XLEN-1 : 0] aligned_data_o,
+    output reg [XLEN-1 : 0] p_data_o,
+
+    output reg              csr_we_o,
+    output reg [11 : 0]     csr_we_addr_o,
+    output reg [XLEN-1 : 0] csr_we_data_o,
+
     // PC of the current instruction.
     input  [XLEN-1 : 0]     pc_i,
-    output [XLEN-1 : 0]     pc_o,
+    output reg [XLEN-1 : 0] pc_o,
 
     // System Jump operation
     input                   sys_jump_i,
@@ -84,7 +127,7 @@ module memory #( parameter XLEN = 32 )
 
     // Has instruction fetch being successiful?
     input                   fetch_valid_i,
-    output                  fetch_valid_o,
+    output reg              fetch_valid_o,
 
     // Exception info passed from Execute to Writeback.
     input                   xcpt_valid_i,
@@ -97,8 +140,6 @@ module memory #( parameter XLEN = 32 )
 
 assign sys_jump_o = sys_jump_i;
 assign sys_jump_csr_addr_o = sys_jump_csr_addr_i;
-assign pc_o = pc_i;
-assign fetch_valid_o = fetch_valid_i;
 
 always@(*)
 begin
@@ -207,6 +248,82 @@ begin
             endcase
         end
     endcase
+end
+
+// ===============================================================================
+//  Output registers to the Writeback stage
+//
+always @(posedge clk_i)
+begin
+    if (rst_i || (flush_i && !stall_i)) // stall has higher priority than flush.
+    begin
+        pc_o <= (flush_i)? pc_i : 0;
+        fetch_valid_o <= 0;
+        regfile_we_o <= 0;
+        regfile_input_sel_o <= 4;
+        rd_addr_o <= 0;
+        signex_sel_o <= 0;
+
+        aligned_data_o <= 0;
+        p_data_o <= 0;
+
+        csr_we_o <= 0;
+        csr_we_addr_o <= 0;
+        csr_we_data_o <= 0;
+    end
+    else if (stall_i)
+    begin
+        pc_o <= pc_o;
+        fetch_valid_o <= fetch_valid_o;
+        regfile_we_o <= regfile_we_o;
+        regfile_input_sel_o <= regfile_input_sel_o;
+        rd_addr_o <= rd_addr_o;
+        signex_sel_o <= signex_sel_o;
+
+        aligned_data_o <= aligned_data_o;
+        p_data_o <= p_data_o;
+
+        csr_we_o <= csr_we_o;
+        csr_we_addr_o <= csr_we_addr_o;
+        csr_we_data_o <= csr_we_data_o;
+    end
+    else if (xcpt_valid_i)
+    begin
+        pc_o <= pc_i;
+        fetch_valid_o <= 1;
+        regfile_we_o <= 0;
+        regfile_input_sel_o <= 4;
+        rd_addr_o <= 0;
+        signex_sel_o <= 0;
+
+        aligned_data_o <= 0;
+        p_data_o <= 0;
+
+        csr_we_o <= 0;
+        csr_we_addr_o <= 0;
+        csr_we_data_o <= 0;
+    end
+    else
+    begin
+        pc_o <= pc_i;
+        fetch_valid_o <= fetch_valid_i;
+        regfile_we_o = regfile_we_i;
+        regfile_input_sel_o <= regfile_input_sel_i;
+        rd_addr_o = rd_addr_i;
+        signex_sel_o = signex_sel_i;
+
+        case (mem_addr_i[1 : 0])
+            2'b00: aligned_data_o = m_data_i;
+            2'b01: aligned_data_o = {m_data_i[ 7: 0], m_data_i[31: 8]};
+            2'b10: aligned_data_o = {m_data_i[15: 0], m_data_i[31: 16]};
+            2'b11: aligned_data_o = {m_data_i[23: 0], m_data_i[31: 24]};
+        endcase
+        p_data_o <= p_data_i;
+
+        csr_we_o <= csr_we_i;
+        csr_we_addr_o <= csr_we_addr_i;
+        csr_we_data_o <= csr_we_data_i;
+    end
 end
 
 endmodule

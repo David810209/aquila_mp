@@ -153,14 +153,6 @@ module decode #(parameter XLEN = 32)
     output reg [XLEN-1 : 0] xcpt_tval_o
 );
 
-integer counter;
-always @(posedge clk_i) begin
-    if(rst_i) 
-        counter <= 0;
-    else if(pc_i[XLEN-1: XLEN-4] == 8)
-        counter <= counter + 1;
-end
-
 // Interal signals of the Decode Stage.
 wire [XLEN-1 : 0] imm;
 wire [ 4 : 0]     rd_addr;
@@ -376,7 +368,6 @@ wire rv32_sret = rv32_sys_op & (rv32_instr[31: 20] == 12'b0001_0000_0010);
 // Load/Store Instructions
 //
 wire rv32_lb = rv32_load & rv32_funct3_000;
-
 wire rv32_lh = rv32_load & rv32_funct3_001;
 wire rv32_lw = rv32_load & rv32_funct3_010;
 wire rv32_lbu = rv32_load & rv32_funct3_100;
@@ -389,7 +380,6 @@ wire rv32_sw = rv32_store & rv32_funct3_010;
 // ================================================================================
 // Exception Signals
 //
-wire         xcpt_valid   = rv32_ecall;
 wire [ 3: 0] xcpt_cause = (privilege_lvl_i == 2'b11)?'d11:
                          (privilege_lvl_i == 2'b01)?'d9 :'d8;
 wire [31: 0] xcpt_tval  = 0;
@@ -486,9 +476,9 @@ end
 // the instructions that are not supported currently
 assign unsupported_instr_o = rv32_fence | rv32_ebreak;
 
-//////////////////////////////////////////////////////////////////
-//  Output to other stages
-//////////////////////////////////////////////////////////////////
+// ===============================================================================
+//  Output registers to the Execute stage
+//
 always @(posedge clk_i)
 begin
     if (rst_i || (flush_i && !stall_i)) // stall has higher priority than flush.
@@ -572,7 +562,7 @@ begin
         csr_data2fwd_o <= csr_data2fwd_o;
         csr_addr2fwd_o <= csr_addr2fwd_o;
     end
-    else if (xcpt_valid)
+    else if (rv32_ecall)
     begin
         pc_o <= pc_i;
         fetch_valid_o <= 1;
@@ -607,7 +597,7 @@ begin
 
         sys_jump_o <= 0;
         sys_jump_csr_addr_o <= 0;
-        xcpt_valid_o <= xcpt_valid;
+        xcpt_valid_o <= 1;
         xcpt_cause_o <= xcpt_cause;
         xcpt_tval_o <= xcpt_tval;
         csr_data2fwd_o <= 0;

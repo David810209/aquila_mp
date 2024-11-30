@@ -288,11 +288,7 @@ end
 //
 always @(posedge clk_i)
 begin
-    // 2024/04/26 Lin-En Yen
-    // "Ready" might be triggered even when the state is idle, 
-    // causing consecutive requests to potentially be ignored.
-    // Update to "S_nxt != S_IDLE".
-    if (S == S_DONE || (S == S_STALL && S_nxt != S_IDLE)) 
+    if (S == S_DONE || S == S_STALL)
         ready_o <= 1;
     else
         ready_o <= 0;

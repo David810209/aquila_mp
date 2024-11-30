@@ -107,7 +107,7 @@ module L2cache_arbiter #(
     reg                      S_DMEM_rw_r;
     reg  [CLSIZE-1 : 0]      S_DMEM_data_r;
     
-    reg  S_DMEM_SEC_strobe; //沒用？
+    // reg  S_DMEM_SEC_strobe; //沒用？
     reg  S_DMEM_RdfromOther;
 
     // input selection signals
@@ -214,14 +214,14 @@ module L2cache_arbiter #(
      end
     
     //沒用？？//////////////////////////////////
-    always @(posedge clk_i) begin
-        if (rst_i)
-            S_DMEM_SEC_strobe <= 0;
-        else if (c_state == M_WAIT && (sel == D_STROBE) && S_DMEM_strobe_i)
-            S_DMEM_SEC_strobe <= 1;
-        else if (c_state == M_IDLE)
-            S_DMEM_SEC_strobe <= 0;
-    end
+    // always @(posedge clk_i) begin
+    //     if (rst_i)
+    //         S_DMEM_SEC_strobe <= 0;
+    //     else if (c_state == M_WAIT && (sel == D_STROBE) && S_DMEM_strobe_i)
+    //         S_DMEM_SEC_strobe <= 1;
+    //     else if (c_state == M_IDLE)
+    //         S_DMEM_SEC_strobe <= 0;
+    // end
     ///////////////
 
     //如果cache要從其他core直接毒data，就要把來自L2 cache的 L2 ready關掉

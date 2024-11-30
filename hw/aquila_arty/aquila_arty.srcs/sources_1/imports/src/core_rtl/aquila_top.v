@@ -82,6 +82,7 @@ module aquila_top #
     input                 M_IMEM_done_i,
      input  [CLSIZE-1 : 0] M_IMEM_data_i,
     
+    //new
     input                 Other_flushing_i,
 
     // Aquila external data memory interface signals

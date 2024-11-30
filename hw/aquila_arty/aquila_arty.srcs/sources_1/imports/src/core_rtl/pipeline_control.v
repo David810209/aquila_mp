@@ -16,6 +16,9 @@
 //  Aug/15/2020, by Chun-Jen Tsai:
 //    Removed the Unconditional Branch Prediction Unit and merged its function
 //    into the BPU.
+//
+//  Aug/20/2024, by Chun-Jen Tsai:
+//    Add a flush signal to the Memory stage.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -83,6 +86,9 @@ module pipeline_control(
     // Signal that flushes Execute.
     output       flush2exe_o,
 
+    // Signal that flushes Memory.
+    output       flush2mem_o,
+
     // Signal that flushes Writeback.
     output       flush2wbk_o,
 
@@ -106,6 +112,7 @@ wire branch_flush;
 assign flush2fet_o = branch_flush | sys_jump_i | is_fencei_i;
 assign flush2dec_o = branch_flush | sys_jump_i | is_fencei_i | is_load_hazard | unsupported_instr_i;
 assign flush2exe_o = is_fencei_i | sys_jump_i;
+assign flush2mem_o = sys_jump_i;
 assign flush2wbk_o = sys_jump_i;
 assign data_hazard_o = is_load_hazard;
 
