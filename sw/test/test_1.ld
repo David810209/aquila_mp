@@ -1,15 +1,15 @@
 /*
 // =============================================================================
-//  Program : coremark.ld
+//  Program : ocr.ld
 //  Author  : Chun-Jen Tsai
-//  Date    : Sep/24/2022
+//  Date    : Dec/06/2023
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
 //  None.
 // -----------------------------------------------------------------------------
 //  Description:
-//  This is the linker script of the CoreMark benchmark for DDRx memory.
+//  This is the linker script of a program compiled to run from DDRx memory.
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -54,13 +54,13 @@
 // =============================================================================
 */
 
-__stack_size = 0x2000;
+__stack_size = 0x800;
 __heap_size  = 0x2000;
 
 MEMORY
 {
-    code_ram   (rx!rw) : ORIGIN = 0x800a1000, LENGTH = 0x7000
-    data_ram   (rw!x)  : ORIGIN = 0x800a8000, LENGTH = 0x8000
+    code_ram   (rx!rw) : ORIGIN = 0x80021000, LENGTH = 0x7000
+    data_ram   (rw!x)  : ORIGIN = 0x80028000, LENGTH = 0x8000
 }
 
 ENTRY(crt0)
@@ -74,15 +74,9 @@ SECTIONS
 
     .data :
     {
-		*(.rela.srodata)
-        *(.rela.sdata)
         *(.data)
-        *(.data*)
         *(.bss)
         *(.rodata*)
-        *(.srodata*)
-        *(.sdata*)
-        *(.sbss*)
     } > data_ram
 
     .heap : ALIGN(0x10)

@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "fat32.h"
+#include "sdcard/fat32.h"
 #include "file_read.h"
 
 // Our FAT32 file I/O routine need a large buffer area to read in

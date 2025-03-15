@@ -71,6 +71,7 @@ int main()
     free(images);
     free(labels);
     free(weights);
+  
 
     return 0;
 }

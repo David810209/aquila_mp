@@ -1,63 +1,63 @@
-# **Project Overview**  
-This project focuses on verifying and simplifying the coherence circuit design of a dual-core system extended from a RISC-V 5-stage pipelined processor, originally developed by the Embedded Intelligent System Lab (EISL).  
-
-The goal is to expand the RISC-V 5-stage pipelined processor to a quad-core system using the MESI protocol.  
+# The Aquila Quad-Core RISC-V SoC
 
 ---
 
-## **Expected Artifacts**
+Aquila-Quad is an open-source quad-core system-on-chip featuring a 32-bit RISC-V RV32IMA processor, extended by the [Aquila SoC](https://github.com/eisl-nctu/aquila). It employs the MESI cache coherence protocol to maintain data consistency across L1 and L2 caches in a shared memory system. The processor supports atomic instructions for efficient synchronization and mutual exclusion in multicore environments. Developed using Verilog HDL, the system is synthesized with the Xilinx Vivado toolchain and operates on the Arty A7-100T FPGA board.
 
-### 1. **Architecture Diagram**  
-The anticipated quad-core architecture is shown below:  
+![Architecture Diagram](architecture.jpg)
 
-![Architecture Diagram](architecture.png)
+---
 
-### 2. **MESI FSM Diagram**  
+## **Specification**
+
+Current features of the Aquila-Quad SoC include:
+
+- RV32IMA ISA-compliant.
+- Embedded 16KB tightly-coupled on-chip memory (TCM).
+- 8KB L1 data and instruction caches.
+- 64KB L2 cache shared among four cores.
+- Multi-core support with coherent data cache controller.
+- CLINT for standard timer interrupts.
+- The RTL model written in Verilog.
+- SD card I/O support.
+
+---
+
+## **Performance**
+Performance is evaluated using an MLP-based MNIST handwritten digit recognition task and a parallel matrix multiplication task, achieving 3.65x and 9.25x speed-ups, respectively, compared to the original Aquila SoC. Aquila-Quad delivers 2.01 CoreMark/MHz and 0.86 DMIPS/MHz per core and runs at 50 MHz on a Xilinx Artix-7 FPGA.
+
+## **MESI FSM Diagram**  
 The MESI protocol's FSM is visualized below:  
 
-![MESI FSM Diagram](MESI.png)
+![MESI FSM Diagram](MESI.jpg)
 
 ---
 
-## **Completed Work**
-1. Coherence verification and shared memory testing  
-2. UART boot code and linker script modification, mutex logic modification  
-3. Core version update  
-4. L1 D-cache FSM, code, and unit test (simulation) complete  
-5. Coherence unit FSM and code complete  
-6. L1/L2 cache and coherence unit port design complete  
+## **User's Guide**
+The Aquila-Quad SoC is still under development. The user's guild will be updated soon.
 
 ---
+
+## **Acknowledgment**  
+Aquila's source code is available on GitHub: [Aquila GitHub Repository](https://github.com/eisl-nctu/aquila)
+
+The quad-core system is extended by contributions from the Embedded Intelligent Systems Laboratory (EISL) at National Chiao Tung University (NCTU). We acknowledge the support and collaboration from the open-source community and our academic partners.
 
 ## **Current Work**
-1. Coherence unit testbench  
-2. L2 cache RTL code and testbench integration  
-3. Coherence unit and L1/L2 D-cache integration  
-4. Integration of other RTL code and testbenches  
-5. Running software on the quad-core design  
-
----
-
-## **Source Code**  
-Aquila's source code is available on GitHub: [Aquila GitHub Repository](https://github.com/eisl-nctu/aquila)  
-
+Integration of a Memory Management Unit (MMU) to enable Linux OS support.
 ---
 
 ## **Folder and File Descriptions**
 
 ### **sw/**  
-- **coremark_2core/** – Test with CoreMark for dual-core performance evaluation  
 - **elibc/** – Basic C header library  
 - **ocr_1core/** – MLP handwriting recognition evaluation code for single core  
-- **ocr_2core/** – Evaluation code for dual-core running in parallel  
-- **test/** – Shared memory test cases  
+- **ocr_4core/** – Evaluation code for quad-core running in parallel  
+- **test/** – Matrix multiplication evaluation code for quad-core
 - **uartboot/** – Contains both the original and modified UART boot code for the Arty A7-100T board  
 
-### **hw/**  
-- **aquila_arty/aquila_arty.srcs/sources_1/imports/src**  
-  - **core_rtl/** – Contains the core RTL code for the RISC-V 5-stage pipelined processor  
-  - **l1_cache/** – Contains the L1 D-cache RTL code and testbench (current work)  
-  - **soc_rtl/** – Contains the top-level RTL code for the Aquila SoC  
-
-- **aquila_arty/aquila_arty.srcs/sim_1/imports/soc_rtl**  
-  - **soc_tb.v** – Testbench for the Aquila SoC  
+### **src/**  
+- **mem/** – Contains the uartboot code that can be compiled in `sw/uartboot`
+- **soc_rtl/** – Contains the top-level RTL code for the Aquila SoC  
+### **build_arty100.tcl**
+- Script to build the Aquila-Quad SoC on the Arty A7-100T board

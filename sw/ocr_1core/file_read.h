@@ -16,7 +16,7 @@
 //
 //  None.
 // =============================================================================
-
+#include <stdint.h>
 #define big2little32(p) ((p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3])
 
 float lerp(float a, float b, float f);
@@ -25,4 +25,4 @@ void width_normalize(float *image, int width, int height);
 float **read_images(char *filename, int *n_images, int *n_rows, int *n_cols);
 uint8_t *read_labels(char *filename);
 float *read_weights(char *filename, int *n_layers, int *n_neurons);
-#define DEBUG
+// #define DEBUG
