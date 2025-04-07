@@ -53,8 +53,8 @@
 // Parameters and Integers
 //==============================================================================================
 
-// The target board can be ARTY or KC705, the MACRO is defined globally
-//   in the TCL script when the project was created
+// The target board can be ARTY, AXKU5, QMCore, Genesys2, K7BaseC, or KC705,
+// the MACRO is defined globally in the TCL script when the project was created
 
 `ifdef ARTY
     `define UIADR 28              // DRAM chip addr width
@@ -66,6 +66,36 @@
     `define DQSP  2               // MIG DQS parameter
     `define USRP  4               // # of user buttons & LEDs
     `define SOC_CLK 50_000_000    // system clock rate
+`elsif QMCore
+    `define UIADR 28              // DRAM chip addr width
+    `define CLP   128             // Cache line size
+    `define DRAMA 14              // DRAM chip addr width
+    `define DRAMD 16              // DRAM chip bus width
+    `define BA    3               // DRAM bank addr width
+    `define WDFP  128             // MIG controller user logic data width
+    `define DQSP  2               // MIG DQS parameter
+    `define USRP  2               // # of user buttons & LEDs
+    `define SOC_CLK 50_000_000    // system clock rate
+`elsif AXKU5
+    `define UIADR 29              // DRAM chip addr width
+    `define CLP   256             // Cache line size
+    `define DRAMA 17              // DRAM chip addr width
+    `define DRAMD 32              // DRAM chip bus width
+    `define BA    2               // DRAM bank addr width
+    `define WDFP  256             // MIG controller user logic data width
+    `define DQSP  4               // MIG DQS parameter
+    `define USRP  4               // # of user buttons & LEDs
+    `define SOC_CLK 50_000_000    // system clock rate
+`elsif K7BaseC
+    `define UIADR 29              // DRAM chip addr width
+    `define CLP   256             // Cache line size
+    `define DRAMA 15              // DRAM chip addr width
+    `define DRAMD 32              // DRAM chip bus width
+    `define BA    3               // DRAM bank addr width
+    `define WDFP  256             // MIG controller user logic data width
+    `define DQSP  4               // MIG DQS parameter
+    `define USRP  4               // # of user buttons & LEDs
+    `define SOC_CLK 50_000_000    // system clock rate
 `elsif KC705
     `define UIADR 28              // DRAM chip addr width
     `define CLP   256             // Cache line size
@@ -75,7 +105,17 @@
     `define WDFP  512             // MIG controller user logic data width
     `define DQSP  8               // MIG DQS parameter
     `define USRP  5               // # of user buttons & LEDs
-    `define SOC_CLK 100_000_000   // system clock rate
+    `define SOC_CLK 50_000_000    // system clock rate
+`elsif Genesys2
+    `define UIADR 29              // DRAM chip addr width
+    `define CLP   256             // Cache line size
+    `define DRAMA 15              // DRAM chip addr width
+    `define DRAMD 32              // DRAM chip bus width
+    `define BA    3               // DRAM bank addr width
+    `define WDFP  256             // MIG controller user logic data width
+    `define DQSP  4               // MIG DQS parameter
+    `define USRP  4               // # of user buttons & LEDs
+    `define SOC_CLK 50_000_000    // system clock rate
 `else
     `define UIADR 29              // DRAM chip addr width
     `define CLP   256             // Cache line size
@@ -90,24 +130,24 @@
 
 // Numbers  of Cores
 `define CORE_NUMS 4
-//`define CORE_NUM_2
-//`define CORE_NUM_3
-// `define CORE_NUM_4
+// `define CORE_NUMS_2
+`define CORE_NUMS_4
+// `define CORE_NUMS_8
 
 // Tightly-Coupled Memory Size
 `define TCM_SIZE_IN_WORDS 4096   // 16KB
 
 // DDRx memory is only accessible via cache controller
 `define ENABLE_DDRx_MEMORY
-`define ICACHE_SIZE 8 // Instruction cache size in KB
-`define DCACHE_SIZE 8 // Data cache size in KB
+`define ICACHE_SIZE 8  // Instruction cache size in KB
+`define DCACHE_SIZE 8  // Data cache size in KB
 `define L2CACHE_SIZE 64
 
 // Branch Prediction
 `define ENABLE_BRANCH_PREDICTION
 
 // Atomic Unit
- `define ENABLE_ATOMIC_UNIT
+`define ENABLE_ATOMIC_UNIT
 
 // Muldiv Integer multiplier
 `define ENABLE_FAST_MULTIPLY
@@ -119,18 +159,7 @@
 `define Monitor 1
 
 // SIM_FNAME defines the RISC-V program path of an ELF file for simulation.
-//`define SIM_FNAME_0  "/home/zichen/zichen/mpd/aquila_sw/pi/pi.elf"
-//`define SIM_FNAME_0  "/home/zichen/zichen/aquila_mp/aquila_mp_sw/ocr_1core/ocr.elf"
-
-//`define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/sw/coremark_2core/CoreMark/coremark.elf"
-//`define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/aquila_mp_sw/test/test_0.elf"
-// `define SIM_FNAME_0  "C:\\zichen\\aquila_mp\\sw\\pi\\pi.elf"
-//`define SIM_FNAME_0  "C:\\zichen\\aquila_mp\\sw\\Dhrystone\\dhry.elf"
-// `define SIM_FNAME_0  "C:\\zichen\\aquila_mp\\sw\\Coremark\\coremark.elf"
-//`define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/sw/Dhrystone/dhry.elf"
 `define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
-//`define SIM_FNAME_1 "/home/zichen/zichen/aquila_mp/aquila_mp_sw/test/test_1.elf"
-//`define SIM_FNAME_1 "/home/zichen/zichen/aquila_mp/sw/coremark_2core/CoreMark2/coremark.elf"
 `define SIM_FNAME_1  "/home/zichen/zichen/aquila_mp/sw/test/test_1.elf"
 `define SIM_FNAME_2  "/home/zichen/zichen/aquila_mp/sw/test/test_2.elf"
 `define SIM_FNAME_3  "/home/zichen/zichen/aquila_mp/sw/test/test_3.elf"

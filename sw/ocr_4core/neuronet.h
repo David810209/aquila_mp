@@ -45,7 +45,7 @@ void neuronet_free(NeuroNet *nn);
 int  neuronet_eval(NeuroNet *nn, float *images, int hart_id, int img_idx);
 float relu(float x);
 
-#define CORE_NUM 4
+#define CORE_NUM 2
 /* For 2-Core */
 #define LOCK_S 0x111
 #define LOCK_0 0x222

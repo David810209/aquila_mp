@@ -297,7 +297,12 @@ begin // for hit
         2'b10: fromCache = c_data_hit[ 63: 32];    // [ 95: 64]
         2'b01: fromCache = c_data_hit[ 95: 64];    // [ 63: 32]
         2'b00: fromCache = c_data_hit[127: 96];    // [ 31:  0]
-`else // KC705
+`elsif QMCore
+        2'b11: fromCache = c_data_hit[ 31: 0];     // [127: 96]
+        2'b10: fromCache = c_data_hit[ 63: 32];    // [ 95: 64]
+        2'b01: fromCache = c_data_hit[ 95: 64];    // [ 63: 32]
+        2'b00: fromCache = c_data_hit[127: 96];    // [ 31:  0]
+`else // KC705, Genesys2, K7BaseC, or AXKU5
         3'b111: fromCache = c_data_hit[ 31: 0];    // [255:224]
         3'b110: fromCache = c_data_hit[ 63: 32];   // [223:192]
         3'b101: fromCache = c_data_hit[ 95: 64];   // [191:160]
@@ -314,11 +319,16 @@ always @(*)
 begin // for miss
     case (line_offset)
 `ifdef ARTY
-        2'b11: fromMem = m_data_i[ 31: 0];        // [127: 96]
-        2'b10: fromMem = m_data_i[ 63: 32];       // [ 95: 64]
-        2'b01: fromMem = m_data_i[ 95: 64];       // [ 63: 32]
-        2'b00: fromMem = m_data_i[127: 96];       // [ 31:  0]
-`else // KC705
+        2'b11: fromMem = m_data_i[ 31: 0];     // [127: 96]
+        2'b10: fromMem = m_data_i[ 63: 32];    // [ 95: 64]
+        2'b01: fromMem = m_data_i[ 95: 64];    // [ 63: 32]
+        2'b00: fromMem = m_data_i[127: 96];    // [ 31:  0]
+`elsif QMCore
+        2'b11: fromMem = m_data_i[ 31: 0];     // [127: 96]
+        2'b10: fromMem = m_data_i[ 63: 32];    // [ 95: 64]
+        2'b01: fromMem = m_data_i[ 95: 64];    // [ 63: 32]
+        2'b00: fromMem = m_data_i[127: 96];    // [ 31:  0]
+`else // KC705, Genesys2, K7BaseC, or AXKU5
         3'b111: fromMem = m_data_i[ 31: 0];       // [255:224]
         3'b110: fromMem = m_data_i[ 63: 32];      // [223:192]
         3'b101: fromMem = m_data_i[ 95: 64];      // [191:160]
@@ -340,7 +350,12 @@ begin // for hit
         2'b10: fromCache_fwd = c_data_fwd[ 63: 32];    // [ 95: 64]
         2'b01: fromCache_fwd = c_data_fwd[ 95: 64];    // [ 63: 32]
         2'b00: fromCache_fwd = c_data_fwd[127: 96];    // [ 31:  0]
-`else // KC705
+`elsif QMCore
+        2'b11: fromCache_fwd = c_data_fwd[ 31: 0];     // [127: 96]
+        2'b10: fromCache_fwd = c_data_fwd[ 63: 32];    // [ 95: 64]
+        2'b01: fromCache_fwd = c_data_fwd[ 95: 64];    // [ 63: 32]
+        2'b00: fromCache_fwd = c_data_fwd[127: 96];    // [ 31:  0]
+`else // KC705, Genesys2, K7BaseC, or AXKU5
         3'b111: fromCache_fwd = c_data_fwd[ 31: 0];    // [255:224]
         3'b110: fromCache_fwd = c_data_fwd[ 63: 32];   // [223:192]
         3'b101: fromCache_fwd = c_data_fwd[ 95: 64];   // [191:160]

@@ -1,0 +1,9 @@
+export PATH=$PATH:/opt/riscv/bin
+export RISCV=/opt/riscv
+make clean
+cd CoreMark
+make ddr
+cd ../Dummy
+make PROJ=test_1
+make PROJ=test_2
+make PROJ=test_3

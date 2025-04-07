@@ -56,7 +56,7 @@
 
 `define SIM_CLK_RATE 100_000_000
 
-module soc_tb #( parameter XLEN = 32, parameter CLSIZE = `CLP)();
+module soc_tb #( parameter XLEN = 32, parameter CLSIZE = `CLP )();
 
 reg  sys_reset = 1;
 reg  sys_clock = 0;
@@ -68,25 +68,25 @@ wire clk, rst;
 // uart
 wire                uart_rx = 1; /* When the UART rx line is idle, it carries '1'. */
 wire                uart_tx;
-localparam CORE_NUMS_BITS = (`CORE_NUMS==1) ? 0 : `CORE_NUMS-1;
+localparam CORE_NUMS_BITS = (`CORE_NUMS==1) ? 0 : $clog2(`CORE_NUMS);
 // --------- coherence unit ----------------------------------------------------
 // to aquila top
-wire                CU_L1_probe_strobe[0 : 3];
-wire [XLEN-1 : 0]   CU_L1_probe_addr[0 : 3];
-wire                CU_L1_invalidate[0 : 3];
-wire [CLSIZE-1 : 0] CU_L1_data[0 : 3];
-wire                CU_L1_make_exclusive[0 : 3];
-wire                CU_L1_response_ready[0 : 3];
-wire                CU_L1_other_amo[0 : 3];
-wire [CLSIZE-1 : 0]  L1_CU_wb_data[0 : 3];
-wire [CLSIZE-1 : 0]  L1_CU_response_data[0 : 3];
-wire [XLEN-1 : 0]    L1_CU_addr[0 : 3];
-wire                 L1_CU_strobe[0 : 3];
-wire                 L1_CU_rw[0 : 3];
-wire                 L1_CU_share_modify[0 : 3];
-wire                 L1_CU_response_ready[0 : 3];
-wire                 L1_CU_replacement[0 : 3];
-wire                 L1_CU_is_instr_fetch[0 : 3];
+wire                CU_L1_probe_strobe[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]   CU_L1_probe_addr[0 : `CORE_NUMS-1];
+wire                CU_L1_invalidate[0 : `CORE_NUMS-1];
+wire [CLSIZE-1 : 0] CU_L1_data[0 : `CORE_NUMS-1];
+wire                CU_L1_make_exclusive[0 : `CORE_NUMS-1];
+wire                CU_L1_response_ready[0 : `CORE_NUMS-1];
+wire                CU_L1_other_amo[0 : `CORE_NUMS-1];
+wire [CLSIZE-1 : 0]  L1_CU_wb_data[0 : `CORE_NUMS-1];
+wire [CLSIZE-1 : 0]  L1_CU_response_data[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]    L1_CU_addr[0 : `CORE_NUMS-1];
+wire                 L1_CU_strobe[0 : `CORE_NUMS-1];
+wire                 L1_CU_rw[0 : `CORE_NUMS-1];
+wire                 L1_CU_share_modify[0 : `CORE_NUMS-1];
+wire                 L1_CU_response_ready[0 : `CORE_NUMS-1];
+wire                 L1_CU_replacement[0 : `CORE_NUMS-1];
+wire                 L1_CU_is_instr_fetch[0 : `CORE_NUMS-1];
 // to L2 cache
 //write back to L2
 wire                CU_L2_wb;
@@ -114,24 +114,24 @@ wire [XLEN-1:0]     L2_MEM_addr;
 wire [CLSIZE-1:0]   L2_MEM_data;
 
 // --------- Amo unit signals -----------------------------------------
-wire                    C2AMO_strobe[0 : 3];
-wire                    C2AMO_rw[0 : 3];
-wire [XLEN-1 : 0]       C2AMO_addr[0 : 3];
-wire [XLEN-1 : 0]       C2AMO_wt_data[0 : 3];
-wire                    C2AMO_done[0 : 3];
-wire [XLEN-1 : 0]       C2AMO_rd_data[0 : 3];
-wire                    C2AMO_is_amo[0 : 3];
-wire [4 : 0]            C2AMO_amo_type[0 : 3];
+wire                    C2AMO_strobe[0 : `CORE_NUMS-1];
+wire                    C2AMO_rw[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]       C2AMO_addr[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]       C2AMO_wt_data[0 : `CORE_NUMS-1];
+wire                    C2AMO_done[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]       C2AMO_rd_data[0 : `CORE_NUMS-1];
+wire                    C2AMO_is_amo[0 : `CORE_NUMS-1];
+wire [4 : 0]            C2AMO_amo_type[0 : `CORE_NUMS-1];
 
-wire                    AMO2C_strobe[0 : 3];
-wire                    AMO2C_rw[0 : 3];
-wire [XLEN-1 : 0]       AMO2C_addr[0 : 3];
-wire [XLEN-1 : 0]       AMO2C_wt_data[0 : 3];
-wire                    AMO2C_done[0 : 3];
-wire [XLEN-1 : 0]       AMO2C_rd_data[0 : 3];
+wire                    AMO2C_strobe[0 : `CORE_NUMS-1];
+wire                    AMO2C_rw[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]       AMO2C_addr[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]       AMO2C_wt_data[0 : `CORE_NUMS-1];
+wire                    AMO2C_done[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]       AMO2C_rd_data[0 : `CORE_NUMS-1];
 
 
-wire [1 : 0] AMO_id;
+wire [CORE_NUMS_BITS-1 : 0]            AMO_id;
 wire                    AMO_strobe;
 wire                    AMO_rw;
 wire [XLEN-1 : 0]       AMO_addr;
@@ -150,13 +150,13 @@ wire [XLEN-1 : 0]       AMO_DMEM_rd_data;
 
 // --------- I/O device interface ----------------------------------------------
 //  Device bus signals for core 0 and core 1 
-wire                dev_strobe[0 : 3];
-wire [XLEN-1 : 0]   dev_addr[0 : 3];
-wire                dev_we[0 : 3];
-wire [XLEN/8-1 : 0] dev_be[0 : 3];
-wire [XLEN-1 : 0]   dev_din[0 : 3];
-wire [XLEN-1 : 0]   dev_dout[0 : 3];
-wire                dev_ready[0 : 3];
+wire                dev_strobe[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]   dev_addr[0 : `CORE_NUMS-1];
+wire                dev_we[0 : `CORE_NUMS-1];
+wire [XLEN/8-1 : 0] dev_be[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]   dev_din[0 : `CORE_NUMS-1];
+wire [XLEN-1 : 0]   dev_dout[0 : `CORE_NUMS-1];
+wire                dev_ready[0 : `CORE_NUMS-1];
 
 // Selected device bus signals
 wire                M_dev_strobe;
@@ -167,6 +167,7 @@ wire [XLEN-1 : 0]   M_dev_din;
 wire [XLEN-1 : 0]   M_dev_dout;
 wire                M_dev_ready;
 
+
 // --------- cdc_sync ----------------------------------------------------------
 wire                MEM_strobe_ui_clk;
 wire [XLEN-1 : 0]   MEM_addr_ui_clk;
@@ -174,8 +175,6 @@ wire                MEM_rw_ui_clk;
 wire [CLSIZE-1 : 0] MEM_wt_data_ui_clk;
 wire                MEM_done_ui_clk;
 wire [CLSIZE-1 : 0] MEM_rd_data_ui_clk;
-
-
 // --------- Memory Controller Interface ---------------------------------------
 // Xilinx MIG memory controller user-logic interface signals
 wire [27:0]         MEM_addr;
@@ -194,12 +193,16 @@ wire                MEM_sr_req;
 wire                MEM_ref_req;
 wire                MEM_zq_req;
 
-// Uart
+// sdcard
+wire                spi_sel = 0;
+wire [XLEN-1 : 0]   spi_dout = 0;
+wire                spi_ready = 0;
+
+// uart
 wire                uart_sel;
 wire [XLEN-1 : 0]   uart_dout;
 wire                uart_ready;
 wire  [1:0]         uart_core_sel;
-
 // External reset signal
 assign usr_reset = sys_reset;
 
@@ -228,60 +231,6 @@ end
 // Simulate a clock-domain for DRAM
 assign ui_clk = sys_clock;
 assign ui_rst = rst_count[RST_CYCLES-1];
-
-// ----------------------------------------------------------------------------
-// core num control
-`ifdef CORE_NUM_2
-assign L1_CU_wb_data[2] = 0;
-assign L1_CU_response_data[2] = 0;
-assign L1_CU_addr[2] = 0;
-assign L1_CU_strobe[2] = 0;
-assign L1_CU_rw[2] = 0;
-assign L1_CU_share_modify[2] = 0;
-assign L1_CU_response_ready[2] = 0;
-assign L1_CU_replacement[2] = 0;
-assign L1_CU_is_instr_fetch[2] = 0;
-assign L1_CU_wb_data[3] = 0;
-assign L1_CU_response_data[3] = 0;
-assign L1_CU_addr[3] = 0;
-assign L1_CU_strobe[3] = 0;
-assign L1_CU_rw[3] = 0;
-assign L1_CU_share_modify[3] = 0;
-assign L1_CU_response_ready[3] = 0;
-assign L1_CU_replacement[3] = 0;
-assign L1_CU_is_instr_fetch[3] = 0;
-
-assign C2AMO_strobe[2] = 0;
-assign C2AMO_rw[2] = 0;
-assign C2AMO_addr[2] = 0;
-assign C2AMO_wt_data[2] = 0;
-assign C2AMO_done[2] = 0;
-assign C2AMO_rd_data[2] = 0;
-assign C2AMO_is_amo[2] = 0;
-assign C2AMO_amo_type[2] = 0;
-assign C2AMO_strobe[3] = 0;
-assign C2AMO_rw[3] = 0;
-assign C2AMO_addr[3] = 0;
-assign C2AMO_wt_data[3] = 0;
-assign C2AMO_done[3] = 0;
-assign C2AMO_rd_data[3] = 0;
-assign C2AMO_is_amo[3] = 0;
-assign C2AMO_amo_type[3] = 0;
-assign dev_strobe[2] = 0;
-assign dev_addr[2] = 0;
-assign dev_we[2] = 0;
-assign dev_be[2] = 0;
-assign dev_din[2] = 0;
-assign dev_dout[2] = 0;
-assign dev_ready[2] = 0;
-assign dev_strobe[3] = 0;
-assign dev_addr[3] = 0;
-assign dev_we[3] = 0;
-assign dev_be[3] = 0;
-assign dev_din[3] = 0;
-assign dev_dout[3] = 0;
-assign dev_ready[3] = 0;
-`endif 
 
 // -----------------------------------------------------------------------------
 //  Aquila processor core.
@@ -349,10 +298,11 @@ assign dev_ready[3] = 0;
         end
     endgenerate 
 
+
 // -----------------------------------------------------------------------------
 //  Atomic unit arbiter.
 //     
-amo_arbiter #(.XLEN(XLEN), .CLSIZE(CLSIZE))
+amo_arbiter #(.XLEN(XLEN), .CLSIZE(CLSIZE), .CORE_NUMS(`CORE_NUMS), .CORE_NUMS_BITS(CORE_NUMS_BITS))
 Amo_arbiter
 (   //===================== System signals =====================//
     .clk_i(clk),
@@ -385,7 +335,7 @@ Amo_arbiter
 //
 // processor to atomic unit
 
-atomic_unit #(.N(`CORE_NUMS), .XLEN(XLEN), .CLSIZE(CLSIZE))
+atomic_unit #(.CORE_NUMS(`CORE_NUMS), .CORE_NUMS_BITS(CORE_NUMS_BITS), .XLEN(XLEN), .CLSIZE(CLSIZE))
 ATOM_U(
     .clk_i(clk),
     .rst_i(rst),
@@ -409,39 +359,52 @@ ATOM_U(
     .M_DMEM_data_i(AMO_DMEM_rd_data)
 );
 
-assign AMO2C_strobe[0]   = (AMO_id == 2'b00) ? AMO_DMEM_strobe : 'b0;
-assign AMO2C_rw[0]       = (AMO_id == 2'b00) ? AMO_DMEM_rw : 'b0;
-assign AMO2C_addr[0]     = (AMO_id == 2'b00) ? AMO_DMEM_addr : 'b0;
-assign AMO2C_wt_data[0]  = (AMO_id == 2'b00) ? AMO_DMEM_wt_data : 'b0;
+generate
+    for(i = 0; i < `CORE_NUMS; i = i + 1) begin
+        assign AMO2C_strobe[i]   = (AMO_id == i) ? AMO_DMEM_strobe : 'b0;
+        assign AMO2C_rw[i]       = (AMO_id == i) ? AMO_DMEM_rw : 'b0;
+        assign AMO2C_addr[i]     = (AMO_id == i) ? AMO_DMEM_addr : 'b0;
+        assign AMO2C_wt_data[i]  = (AMO_id == i) ? AMO_DMEM_wt_data : 'b0;
+    end
+endgenerate
+`ifdef CORE_NUMS_2
+assign AMO_DMEM_done = (AMO_id == 0) ? AMO2C_done[0] :
+                       (AMO_id == 1) ? AMO2C_done[1] : 'b0;
+assign AMO_DMEM_rd_data = (AMO_id == 0) ? AMO2C_rd_data[0] :
+                           (AMO_id == 1) ? AMO2C_rd_data[1] : 'b0;
+`elsif CORE_NUMS_4
+assign AMO_DMEM_done     = (AMO_id == 0) ? AMO2C_done[0] :
+                           (AMO_id == 1) ? AMO2C_done[1] :
+                           (AMO_id == 2) ? AMO2C_done[2] :
+                           (AMO_id == 3) ? AMO2C_done[3] : 'b0;
 
-assign AMO2C_strobe[1]   = (AMO_id == 2'b01) ? AMO_DMEM_strobe : 'b0;
-assign AMO2C_rw[1]       = (AMO_id == 2'b01) ? AMO_DMEM_rw : 'b0;
-assign AMO2C_addr[1]     = (AMO_id == 2'b01) ? AMO_DMEM_addr : 'b0;
-assign AMO2C_wt_data[1]  = (AMO_id == 2'b01) ? AMO_DMEM_wt_data : 'b0;
-
-assign AMO2C_strobe[2]   = (AMO_id == 2'b10) ? AMO_DMEM_strobe : 'b0;
-assign AMO2C_rw[2]       = (AMO_id == 2'b10) ? AMO_DMEM_rw : 'b0;
-assign AMO2C_addr[2]     = (AMO_id == 2'b10) ? AMO_DMEM_addr : 'b0;
-assign AMO2C_wt_data[2]  = (AMO_id == 2'b10) ? AMO_DMEM_wt_data : 'b0;
-
-assign AMO2C_strobe[3]   = (AMO_id == 2'b11) ? AMO_DMEM_strobe : 'b0;
-assign AMO2C_rw[3]       = (AMO_id == 2'b11) ? AMO_DMEM_rw : 'b0;
-assign AMO2C_addr[3]     = (AMO_id == 2'b11) ? AMO_DMEM_addr : 'b0;
-assign AMO2C_wt_data[3]  = (AMO_id == 2'b11) ? AMO_DMEM_wt_data : 'b0;
-
-assign AMO_DMEM_done     = (AMO_id == 2'b00) ? AMO2C_done[0] :
-                           (AMO_id == 2'b01) ? AMO2C_done[1] :
-                           (AMO_id == 2'b10) ? AMO2C_done[2] :
-                           (AMO_id == 2'b11) ? AMO2C_done[3] : 'b0;
-
-assign AMO_DMEM_rd_data  = (AMO_id == 2'b00) ? AMO2C_rd_data[0] :
-                           (AMO_id == 2'b01) ? AMO2C_rd_data[1] :
-                           (AMO_id == 2'b10) ? AMO2C_rd_data[2] :
-                           (AMO_id == 2'b11) ? AMO2C_rd_data[3] : 'b0;
+assign AMO_DMEM_rd_data  = (AMO_id == 0) ? AMO2C_rd_data[0] :
+                           (AMO_id == 1) ? AMO2C_rd_data[1] :
+                           (AMO_id == 2) ? AMO2C_rd_data[2] :
+                           (AMO_id == 3) ? AMO2C_rd_data[3] : 'b0;
+`else  // 8 cores
+assign AMO_DMEM_done     = (AMO_id == 0) ? AMO2C_done[0] :
+                           (AMO_id == 1) ? AMO2C_done[1] :
+                           (AMO_id == 2) ? AMO2C_done[2] :
+                           (AMO_id == 3) ? AMO2C_done[3] :
+                           (AMO_id == 4) ? AMO2C_done[4] :
+                           (AMO_id == 5) ? AMO2C_done[5] :
+                           (AMO_id == 6) ? AMO2C_done[6] :
+                           (AMO_id == 7) ? AMO2C_done[7] : 'b0;
+                           
+assign AMO_DMEM_rd_data  = (AMO_id == 0) ? AMO2C_rd_data[0] :
+                            (AMO_id == 1) ? AMO2C_rd_data[1] :
+                            (AMO_id == 2) ? AMO2C_rd_data[2] :
+                            (AMO_id == 3) ? AMO2C_rd_data[3] :
+                            (AMO_id == 4) ? AMO2C_rd_data[4] :
+                            (AMO_id == 5) ? AMO2C_rd_data[5] :
+                            (AMO_id == 6) ? AMO2C_rd_data[6] :
+                            (AMO_id == 7) ? AMO2C_rd_data[7] : 'b0; 
+`endif
 
 // -----------------------------------------------------------------------------
 //  Device Arbiter.
-device_arbiter #(.XLEN(XLEN), .CORE_NUMS_BITS(CORE_NUMS_BITS))
+device_arbiter #(.XLEN(XLEN), .CORE_NUMS(`CORE_NUMS), .CORE_NUMS_BITS(CORE_NUMS_BITS))
 device_arbiter(
     .clk_i(clk),
     .rst_i(rst), 
@@ -469,10 +432,16 @@ device_arbiter(
 //  Device address decoder.
 //
 //       [0] 0xC000_0000 - 0xC0FF_FFFF : UART device
-//       [1] 0xC200_0000 - 0xC2FF_FFFF : DCA device
+//       [1] 0xC200_0000 - 0xC2FF_FFFF : SPI device
+//       [2] 0xC400_0000 - 0xC4FF_FFFF : DSA device
 assign uart_sel  = (M_dev_addr[XLEN-1:XLEN-8] == 8'hC0);
-assign M_dev_dout  = (uart_sel)? uart_dout : {XLEN{1'b0}};
-assign M_dev_ready = (uart_sel)? uart_ready : {XLEN{1'b0}};
+assign spi_sel   = (M_dev_addr[XLEN-1:XLEN-8] == 8'hC2);
+assign M_dev_dout  = (uart_sel)? uart_dout :
+                   (spi_sel)?   spi_dout :
+                              {XLEN{1'b0}};
+assign M_dev_ready = (uart_sel)? uart_ready :
+                   (spi_sel)?   spi_ready :
+                                      1'b0;
 
 // ----------------------------------------------------------------------------
 //  UART Controller with a simple memory-mapped I/O interface.
@@ -480,6 +449,7 @@ assign M_dev_ready = (uart_sel)? uart_ready : {XLEN{1'b0}};
 `define BAUD_RATE	115200
 
 wire simulation_finished;
+
 uart #(.BAUD(`SIM_CLK_RATE/`BAUD_RATE))
 UART(
     .clk(clk),
@@ -514,7 +484,7 @@ end
 // ----------------------------------
 //  coherence unit
 // ----------------------------------
-coherence_unit #(.XLEN(32), .CLSIZE(128), .CORE_NUMS_BITS(CORE_NUMS_BITS)) 
+ coherence_unit #(.XLEN(32), .CLSIZE(CLSIZE), .CORE_NUMS(`CORE_NUMS), .CORE_NUMS_BITS(CORE_NUMS_BITS)) 
     coherence_unit
     (
         //===================== System signals =====================//
@@ -598,6 +568,7 @@ L2cache #(.XLEN(XLEN), .CLSIZE(CLSIZE), .CACHE_SIZE(`L2CACHE_SIZE))
         .m_addr_o(L2_MEM_addr),
         .m_data_o(L2_MEM_data)
     );
+
 `ifdef ENABLE_DDRx_MEMORY
 // ----------------------------------------------------------------------------
 //  In the real system, the memory controller 'MIG' operates across two clock
@@ -712,5 +683,5 @@ begin: TEST_CASE
   reset_trigger = 0;
 end
 
-
 endmodule
+

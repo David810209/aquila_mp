@@ -181,14 +181,6 @@ end
 // ----------------
 integer idx;
 
-// initial begin
-
-//     for (idx = 0; idx < N_ENTRIES; idx = idx + 1)
-
-//         DRAM[idx] = 0;
-
-// end
-
 always@(posedge clk_i)
 begin
     if (app_en && !app_cmd[0])

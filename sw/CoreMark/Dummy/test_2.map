@@ -1,0 +1,69 @@
+為了滿足檔案參照(符號)而包含了歸檔成員
+
+./libelibc.a(crt0.o)          (crt0)
+
+記憶體配置
+
+名稱           來源             長度             屬性
+code_ram         0x0000000080041000 0x0000000000007000 xr !rw
+data_ram         0x0000000080048000 0x0000000000008000 rw !x
+*default*        0x0000000000000000 0xffffffffffffffff
+
+鏈結器命令稿和記憶體對映
+
+                0x0000000000000800                __stack_size = 0x800
+                0x0000000000002000                __heap_size = 0x2000
+
+.text           0x0000000080041000       0x34
+ *(.text*)
+ .text          0x0000000080041000        0x0 test_2.o
+ .text.startup  0x0000000080041000        0x4 test_2.o
+                0x0000000080041000                main
+ .text          0x0000000080041004       0x30 ./libelibc.a(crt0.o)
+                0x0000000080041004                crt0
+
+.rela.dyn       0x0000000080041034        0x0
+ .rela.sdata    0x0000000080041034        0x0 test_2.o
+
+.data           0x0000000080048000        0x0
+ *(.data)
+ .data          0x0000000080048000        0x0 test_2.o
+ .data          0x0000000080048000        0x0 ./libelibc.a(crt0.o)
+ *(.bss)
+ .bss           0x0000000080048000        0x0 test_2.o
+ .bss           0x0000000080048000        0x0 ./libelibc.a(crt0.o)
+ *(.rodata*)
+
+.sdata          0x0000000080048000        0x4
+ .sdata         0x0000000080048000        0x4 ./libelibc.a(crt0.o)
+                0x0000000080048000                stack_top
+
+.sbss           0x0000000080048004        0x4
+ .sbss          0x0000000080048004        0x4 ./libelibc.a(crt0.o)
+                0x0000000080048004                sp_store
+
+.heap           0x0000000080048010     0x2000
+                0x0000000080048010                __heap_start = .
+                0x000000008004a010                . = (. + __heap_size)
+ *fill*         0x0000000080048010     0x2000 
+
+.stack          0x000000008004a010      0x800
+                0x000000008004a810                . = (. + __stack_size)
+ *fill*         0x000000008004a010      0x800 
+                0x000000008004a810                __stack_top = .
+LOAD test_2.o
+LOAD ./libelibc.a
+LOAD /opt/riscv/lib/gcc/riscv32-unknown-elf/12.2.0/libgcc.a
+OUTPUT(test_2.elf elf32-littleriscv)
+
+.comment        0x0000000000000000       0x1b
+ .comment       0x0000000000000000       0x1b test_2.o
+                                         0x1c (鬆開之前的大小)
+ .comment       0x000000000000001b       0x1c ./libelibc.a(crt0.o)
+
+.riscv.attributes
+                0x0000000000000000       0x26
+ .riscv.attributes
+                0x0000000000000000       0x26 test_2.o
+ .riscv.attributes
+                0x0000000000000026       0x26 ./libelibc.a(crt0.o)

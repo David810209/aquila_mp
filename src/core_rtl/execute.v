@@ -81,13 +81,14 @@ module execute #( parameter XLEN = 32 )
     input                   branch_hit_i,
     input                   branch_decision_i,
 
-    input                   regfile_we_i,
-    input  [ 2 : 0]         regfile_input_sel_i,
+    input  [ 2 : 0]         rd_input_sel_i,
+    input  [ 4 : 0]         rd_addr_i,
+    input                   rd_we_i,
+    input                   signex_sel_i,
+
     input                   we_i,
     input                   re_i,
     input  [ 1 : 0]         dsize_sel_i,
-    input                   signex_sel_i,
-    input  [ 4 : 0]         rd_addr_i,
     input                   is_fencei_i,
     input                   is_amo_i,
     input  [4 : 0]          amo_type_i,
@@ -128,8 +129,8 @@ module execute #( parameter XLEN = 32 )
     output reg [ 1 : 0]     dsize_sel_o,
     
     // Signals to Memory Writeback Pipeline.
-    output reg [ 2 : 0]     regfile_input_sel_o,
-    output reg              regfile_we_o,
+    output reg [ 2 : 0]     rd_input_sel_o,
+    output reg              rd_we_o,
     output reg [ 4 : 0]     rd_addr_o,
     output reg [XLEN-1 : 0] p_data_o,
 
@@ -276,15 +277,16 @@ always @(posedge clk_i)
 begin
     if (rst_i || (flush_i && !stall_i)) // stall has higher priority than flush.
     begin
+        rd_input_sel_o <= 0;
+        rd_addr_o <= 0;
+        rd_we_o <= 0;
+        signex_sel_o <= 0;
+
         we_o <= 0;
         re_o <= 0;
         rs2_data_o <= 0;
         addr_o <= 0;
         dsize_sel_o <= 0;
-        signex_sel_o <= 0;
-        regfile_input_sel_o <= 0;
-        regfile_we_o <= 0;
-        rd_addr_o <= 0;
         is_fencei_o <= 0;
         is_amo_o <= 0;
         amo_type_o <= 0;
@@ -302,15 +304,16 @@ begin
     end
     else if (stall_i || stall_from_exe_o)
     begin
+        rd_input_sel_o <= rd_input_sel_o;
+        rd_addr_o <= rd_addr_o;
+        rd_we_o <= rd_we_o;
+        signex_sel_o <= signex_sel_o;
+
         we_o <= we_o;
         re_o <= re_o;
         rs2_data_o <= rs2_data_o;
         addr_o <= addr_o;
         dsize_sel_o <= dsize_sel_o;
-        signex_sel_o <= signex_sel_o;
-        regfile_input_sel_o <= regfile_input_sel_o;
-        regfile_we_o <= regfile_we_o;
-        rd_addr_o <= rd_addr_o;
         is_fencei_o <= is_fencei_o;
         is_amo_o <= is_amo_o;
         amo_type_o <= amo_type_o;
@@ -328,15 +331,16 @@ begin
     end
     else
     begin
+        rd_input_sel_o <= rd_input_sel_i;
+        rd_addr_o <= rd_addr_i;
+        rd_we_o <= rd_we_i;
+        signex_sel_o <= signex_sel_i;
+
         we_o <= we_i ;
         re_o <= re_i;
         rs2_data_o <= rs2_data_i;
         addr_o  <= mem_addr;
         dsize_sel_o <= dsize_sel_i;
-        signex_sel_o <= signex_sel_i;
-        regfile_input_sel_o <= regfile_input_sel_i;
-        regfile_we_o <= regfile_we_i;
-        rd_addr_o <= rd_addr_i;
         is_fencei_o <= is_fencei_i;
         is_amo_o <= is_amo_i;
         amo_type_o <= amo_type_i;
@@ -366,7 +370,7 @@ begin
     end
     else
     begin
-        case (regfile_input_sel_i)
+        case (rd_input_sel_i)
             3'b011: p_data_o <= branch_restore_pc_o;
             3'b100: p_data_o <= result;
             3'b101: p_data_o <= csr_data_i;

@@ -59,11 +59,11 @@ __heap_size  = 0xf0000;
 
 MEMORY
 {
-    code_ram         (rx!rw) : ORIGIN = 0x800c1000, LENGTH = 0x10000
-    rodata_ram       (rw!x)  : ORIGIN = 0x800d1000, LENGTH = 0x50000
+    code_ram         (rx!rw) : ORIGIN = 0x80041000, LENGTH = 0x10000
+    rodata_ram       (rw!x)  : ORIGIN = 0x80051000, LENGTH = 0x30000
     global_data_ram  (rw!x)  : ORIGIN = 0x80151000, LENGTH = 0x10000
     heap_data_ram    (rw!x)  : ORIGIN = 0x80161000, LENGTH = 0x100000
-    private_data_ram (rw!x)  : ORIGIN = 0x80701000, LENGTH = 0x100000
+    private_data_ram (rw!x)  : ORIGIN = 0x80501000, LENGTH = 0x100000
 }
 
 ENTRY(crt0)

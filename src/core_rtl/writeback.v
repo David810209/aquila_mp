@@ -70,8 +70,9 @@ module writeback #( parameter XLEN = 32 )
     input               flush_i,
 
     // From Memory stage
-    input               regfile_we_i,
+    input  [ 2 : 0]     rd_input_sel_i,
     input  [ 4 : 0]     rd_addr_i,
+    input               rd_we_i,
     input               signex_sel_i,
     input  [XLEN-1 : 0] aligned_data_i,
     input  [XLEN-1 : 0] p_data_i,
@@ -79,12 +80,6 @@ module writeback #( parameter XLEN = 32 )
     input               csr_we_i,
     input  [11: 0]      csr_we_addr_i,
     input  [XLEN-1 : 0] csr_we_data_i,
-
-    // from Memory stage
-    input  [ 2 : 0]     regfile_input_sel_i,
-
-    // from Data Memory
-    input  [XLEN-1 : 0] m_data_i,
 
     // to RegisterFile
     output              rd_we_o,
@@ -166,7 +161,7 @@ end
 
 always @(*)
 begin
-    case (regfile_input_sel_i)
+    case (rd_input_sel_i)
         3'b000: rd_data = (signex_sel_i)?
                           {24'b0, aligned_data_i[7 : 0]} :
                           {{24{aligned_data_i[7]}}, aligned_data_i[7 : 0]};   // load byte
@@ -181,7 +176,7 @@ end
 assign pc_o = pc_i;
 assign fetch_valid_o = fetch_valid_i;
 
-assign rd_we_o = regfile_we_i;
+assign rd_we_o = rd_we_i;
 assign rd_addr_o = rd_addr_i;
 assign rd_data_o = rd_data;
 

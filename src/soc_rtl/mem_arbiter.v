@@ -293,6 +293,10 @@ module mem_arbiter #(
             P0_STROBE: wdata = P0_MEM_data_r;
             P1_STROBE: wdata = P1_MEM_data_r;
             default : wdata = {CLSIZE{1'b0}};
+`elsif QMCore
+            P0_STROBE: wdata = P0_MEM_data_r;
+            P1_STROBE: wdata = P1_MEM_data_r;
+            default : wdata = {CLSIZE{1'b0}};
 `else // KC705
             P0_STROBE: wdata = (addr[2])? {P0_MEM_data_r, {CLSIZE{1'b0}}} : {{CLSIZE{1'b0}}, P0_MEM_data_r};
             P1_STROBE: wdata = (addr[2])? {P1_MEM_data_r, {CLSIZE{1'b0}}} : {{CLSIZE{1'b0}}, P1_MEM_data_r};
@@ -304,6 +308,10 @@ module mem_arbiter #(
     always @(*) begin
         case (sel_current)
 `ifdef ARTY
+            P0_STROBE: wmask = 16'h0000;
+            P1_STROBE: wmask = 16'h0000;
+            default : wmask = 16'h0000;
+`elsif QMCore
             P0_STROBE: wmask = 16'h0000;
             P1_STROBE: wmask = 16'h0000;
             default : wmask = 16'h0000;
@@ -424,6 +432,9 @@ module mem_arbiter #(
     //  Output logic
     //=======================================================
 `ifdef ARTY
+    assign P0_MEM_data_o = rdata_reorder;
+    assign P1_MEM_data_o = rdata_reorder;
+`elsif QMCore
     assign P0_MEM_data_o = rdata_reorder;
     assign P1_MEM_data_o = rdata_reorder;
 `else

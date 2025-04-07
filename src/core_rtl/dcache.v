@@ -111,6 +111,26 @@ module dcache
     output                    test_share_o   //for testing
 );
 //=======================================================
+// Cache Finite State Machine
+//=======================================================
+localparam Init             = 0,
+           Idle             = 1,
+           Analysis         = 2,
+           WriteHitShare    = 3,
+           WbtoMem          = 4,
+           RdfromMem        = 5,
+           WbtoMemAll       = 7,
+           WbtoMemAllFinish = 8,
+           WaitForAmo       = 9;
+
+// Cache controller state registers
+reg [ 3 : 0] S, S_nxt;
+
+reg  [ 1 : 0]          PROBE_S, PROBE_S_nxt;
+
+localparam PROBE_Idle       = 0,
+           PROBE_Analysis   = 1;
+//=======================================================
 // Cache parameters
 //=======================================================
 localparam N_WAYS      = 2;
@@ -147,9 +167,6 @@ wire                   c_share_o[0 : N_WAYS-1];   // share of current $ blocks.
 reg  [LINE_BITS-1 : 0] init_count;                // Counter to initialize valid bits.
 
 integer idx;
-
-assign c_data_hit = c_block[hit_index];
-
 //=======================================================
 // FIFO replace policy signals
 //=======================================================
@@ -163,13 +180,6 @@ wire [WORD_BITS-1 : 0] line_offset;
 wire [LINE_BITS-1 : 0] line_index;
 wire [TAG_BITS-1  : 0] tag;
 wire [LINE_BITS-1 : 0] addr_sram;
-
-assign line_offset = p_strobe_i ?  p_addr_i[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS]
-                                 :  p_addr_r[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS];
-assign line_index  = p_strobe_i ? p_addr_i[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS] 
-                                : p_addr_r[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS];
-assign tag         = p_strobe_i ? p_addr_i[XLEN - 1 : NONTAG_BITS]
-                                : p_addr_r[XLEN - 1 : NONTAG_BITS];
 // Control signals for flushing all cache blocks
 //=======================================================
 reg [LINE_BITS-1 : 0] N_LINES_cnt;
@@ -178,22 +188,72 @@ wire NeedtoWb = c_valid_o[N_WAYS_cnt] && !c_share_o[N_WAYS_cnt];
 wire WbAllFinish = (N_LINES_cnt == N_LINES - 1 && N_WAYS_cnt == N_WAYS - 1);
 reg WbAllFinish_r;
 wire probe_on_wb_line;
-
 //=======================================================
-// Cache Finite State Machine
+// Cache Coherence through Broadcast
 //=======================================================
-localparam Init             = 0,
-           Idle             = 1,
-           Analysis         = 2,
-           WriteHitShare    = 3,
-           WbtoMem          = 4,
-           RdfromMem        = 5,
-           WbtoMemAll       = 7,
-           WbtoMemAllFinish = 8,
-           WaitForAmo       = 9;
+wire [CLSIZE-1 : 0]    probe_block[0 : N_WAYS-1];     // Cache blocks from N cache way.
+wire [TAG_BITS-1 : 0]  probe_tag_o[0 : N_WAYS-1];     // Tag bits of current $ blocks.
+wire                   probe_valid_o[0 : N_WAYS-1];   // Validity of current $ blocks.
+wire                   probe_dirty_o[0 : N_WAYS-1];   // Dirtiness of current $ blocks.
+wire                   probe_share_o[0 : N_WAYS-1];   // Share of current $ blocks.
 
-// Cache controller state registers
-reg [ 3 : 0] S, S_nxt;
+reg                    probe_valid_write[0 : N_WAYS-1]; // WE signal for a $ valid bit.
+reg                    probe_dirty_write[0 : N_WAYS-1]; // WE signal for a $ dirty bit.
+reg                    probe_share_write[0 : N_WAYS-1]; // WE signal for a $ share bit.
+
+wire [TAG_BITS-1  : 0] probe_tag;
+
+wire                   probe_way_hit[0 : N_WAYS-1];     // Cache-way hit flag.
+reg  [WAY_BITS-1 : 0]  probe_hit_index;                 // Decoded way_hit[] signal.
+wire                   probe_cache_hit;                 // Got a cache hit (valid)      
+wire                   probe_cache_dirty;               // Probe cache line is dirty.
+wire                   probe_shared;                    // Probe cache line is shared.
+wire [LINE_BITS-1 : 0] probe_line_index;
+
+// register invalidate signal
+reg [XLEN-1:0] probe_addr_r;
+reg invalidate_r;
+reg probe_strobe_r;
+//register memory request
+reg  p_strobe_r;
+reg  p_rw_r;
+reg  [XLEN/8-1 : 0] p_byte_enable_r;
+reg  [XLEN-1 : 0] p_addr_r;
+reg  [XLEN-1 : 0] p_data_r;
+//-----------------------------------------------
+// Read a 32-bit word from the target cache line
+//-----------------------------------------------
+reg [XLEN-1 : 0] fromCache; // Get the specific word in cache line
+reg [XLEN-1 : 0] fromMem;   // Get the specific word in memory line
+//------------------------------------------------------------------------
+// Write the correct bytes according to the signal p_byte_enable_r
+//------------------------------------------------------------------------
+reg [XLEN-1 : 0] update_data;
+//=======================================================
+//  Valid bits storage in distributed RAM
+//=======================================================
+wire valid_data;
+wire [LINE_BITS-1 : 0] valid_write_addr;
+//=======================================================
+//  Dirty bits storage in distributed RAM 
+//=======================================================
+wire dirty_data;
+wire [LINE_BITS-1 : 0] dirty_waddr;
+//=======================================================
+//  Share bits storage in distributed RAM
+//=======================================================
+wire share_data;
+wire [LINE_BITS-1 : 0] share_waddr;
+
+assign c_data_hit = c_block[hit_index];
+
+assign line_offset = p_strobe_i ?  p_addr_i[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS]
+                                 :  p_addr_r[WORD_BITS + BYTE_BITS - 1 : BYTE_BITS];
+assign line_index  = p_strobe_i ? p_addr_i[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS] 
+                                : p_addr_r[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS];
+assign tag         = p_strobe_i ? p_addr_i[XLEN - 1 : NONTAG_BITS]
+                                : p_addr_r[XLEN - 1 : NONTAG_BITS];
+
 
 //====================================================
 // Cache Controller FSM
@@ -269,10 +329,7 @@ end
 //====================================================
 // Cache Coherence FSM
 //====================================================
-reg  [ 3 : 0]          PROBE_S, PROBE_S_nxt;
 
-localparam PROBE_Idle       = 0,
-           PROBE_Analysis   = 1;
 always @(posedge clk_i)
 begin
     if (rst_i)
@@ -313,32 +370,16 @@ assign test_share_o = c_share_o[hit_index];
 //=======================================================
 // Cache Coherence through Broadcast
 //=======================================================
-wire [CLSIZE-1 : 0]    probe_block[0 : N_WAYS-1];     // Cache blocks from N cache way.
-wire [TAG_BITS-1 : 0]  probe_tag_o[0 : N_WAYS-1];     // Tag bits of current $ blocks.
-wire                   probe_valid_o[0 : N_WAYS-1];   // Validity of current $ blocks.
-wire                   probe_dirty_o[0 : N_WAYS-1];   // Dirtiness of current $ blocks.
-wire                   probe_share_o[0 : N_WAYS-1];   // Share of current $ blocks.
 
-reg                    probe_valid_write[0 : N_WAYS-1]; // WE signal for a $ valid bit.
-reg                    probe_dirty_write[0 : N_WAYS-1]; // WE signal for a $ dirty bit.
-reg                    probe_share_write[0 : N_WAYS-1]; // WE signal for a $ share bit.
-
-wire [TAG_BITS-1  : 0] probe_tag;
-
-wire                   probe_way_hit[0 : N_WAYS-1];     // Cache-way hit flag.
-reg  [WAY_BITS-1 : 0]  probe_hit_index;                 // Decoded way_hit[] signal.
-wire                   probe_cache_hit;                 // Got a cache hit (valid)      
-wire                   probe_cache_dirty;               // Probe cache line is dirty.
-wire                   probe_shared;                    // Probe cache line is shared.
 // probe_cache_hit + probe_cache_dirty -> M
 // probe_cache_hit + !probe_cache_dirty -> E
 // probe_cache_hit + probe_shared -> S
 // !probe_cache_hit -> I
 
-wire [LINE_BITS-1 : 0] probe_line_index  = (invalidate_r) ?  invalidate_addr_r[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS] : 
+assign probe_line_index  = (probe_strobe_r) ?  probe_addr_r[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS] : 
                                                              probe_addr_i[NONTAG_BITS - 1 : WORD_BITS + BYTE_BITS];
                                                              
-assign probe_tag     = (invalidate_r) ?  invalidate_addr_r[XLEN - 1 : NONTAG_BITS] : probe_addr_i[XLEN - 1 : NONTAG_BITS];
+assign probe_tag     = (probe_strobe_r) ?  probe_addr_r[XLEN - 1 : NONTAG_BITS] : probe_addr_i[XLEN - 1 : NONTAG_BITS];
 
 // Check and see if any cache way has the matched memory block.
 assign probe_way_hit[0] = (probe_valid_o[0] && (probe_tag_o[0] == probe_tag))? 1 : 0;
@@ -379,31 +420,26 @@ assign probe_on_wb_line = (response_ready_o && S == WbtoMem
                             && {c_tag_o[victim_sel], line_index, {WORD_BITS{1'b0}}, 2'b0} == {probe_tag, probe_line_index, {WORD_BITS{1'b0}}, 2'b0});
 
 // register invalidate signal
-reg [XLEN-1:0] invalidate_addr_r;
-reg invalidate_r;
 always @(posedge clk_i)
 begin
     if (rst_i) begin
         invalidate_r <= 0;
-        invalidate_addr_r <= 0;
+        probe_strobe_r <= 0;
+        probe_addr_r <= 0;
     end
-    else if (invalidate_i) begin
-        invalidate_r <= invalidate_i;
-        invalidate_addr_r <= probe_addr_i;
+    else if (probe_strobe_i) begin
+        probe_strobe_r <= 1;
+        invalidate_r <= (invalidate_i) ? 1 : 0;
+        probe_addr_r <= probe_addr_i;
     end
     else begin
         invalidate_r <= 0;
-        invalidate_addr_r <= 0;
+        probe_strobe_r <= 0;
+        probe_addr_r <= 0;
     end
 end
 
 //register memory request
-reg  p_strobe_r;
-reg  p_rw_r;
-reg  [XLEN/8-1 : 0] p_byte_enable_r;
-reg  [XLEN-1 : 0] p_addr_r;
-reg  [XLEN-1 : 0] p_data_r;
-
 always @(posedge clk_i ) begin
     if(rst_i) begin
         p_strobe_r <= 0;
@@ -543,8 +579,6 @@ end
 //-----------------------------------------------
 // Read a 32-bit word from the target cache line
 //-----------------------------------------------
-reg [XLEN-1 : 0] fromCache; // Get the specific word in cache line
-reg [XLEN-1 : 0] fromMem;   // Get the specific word in memory line
 
 always @(*)
 begin // for hit
@@ -554,7 +588,12 @@ begin // for hit
         2'b10: fromCache = c_data_hit[ 63: 32];    // [ 95: 64]
         2'b01: fromCache = c_data_hit[ 95: 64];    // [ 63: 32]
         2'b00: fromCache = c_data_hit[127: 96];    // [ 31:  0]
-`else // KC705
+`elsif QMCore
+        2'b11: fromCache = c_data_hit[ 31: 0];     // [127: 96]
+        2'b10: fromCache = c_data_hit[ 63: 32];    // [ 95: 64]
+        2'b01: fromCache = c_data_hit[ 95: 64];    // [ 63: 32]
+        2'b00: fromCache = c_data_hit[127: 96];    // [ 31:  0]
+`else // KC705, Genesys2, K7BaseC, or AXKU5
         3'b111: fromCache = c_data_hit[ 31: 0];    // [255:224]
         3'b110: fromCache = c_data_hit[ 63: 32];   // [223:192]
         3'b101: fromCache = c_data_hit[ 95: 64];   // [191:160]
@@ -575,7 +614,12 @@ begin // for miss
         2'b10: fromMem = coherence_data_i[ 63: 32];       // [ 95: 64]
         2'b01: fromMem = coherence_data_i[ 95: 64];       // [ 63: 32]
         2'b00: fromMem = coherence_data_i[127: 96];       // [ 31:  0]
-`else // KC705
+`elsif QMCore
+        2'b11: fromMem = coherence_data_i[ 31: 0];        // [127: 96]
+        2'b10: fromMem = coherence_data_i[ 63: 32];       // [ 95: 64]
+        2'b01: fromMem = coherence_data_i[ 95: 64];       // [ 63: 32]
+        2'b00: fromMem = coherence_data_i[127: 96];       // [ 31:  0]
+`else // KC705, Genesys2, K7BaseC, or AXKU5
         3'b111: fromMem = coherence_data_i[ 31: 0];       // [255:224]
         3'b110: fromMem = coherence_data_i[ 63: 32];      // [223:192]
         3'b101: fromMem = coherence_data_i[ 95: 64];      // [191:160]
@@ -624,7 +668,6 @@ assign response_data_o = probe_block[probe_hit_index];
 //------------------------------------------------------------------------
 // Write the correct bytes according to the signal p_byte_enable_r
 //------------------------------------------------------------------------
-reg [XLEN-1 : 0] update_data;
 
 always @(*)
 begin           // write miss : write hit;
@@ -667,11 +710,16 @@ always @(*) begin
     if(p_is_amo_i)begin
         case (line_offset)
 `ifdef ARTY
-            2'b11: c_data_update = {c_data_hit[127:32], p_data_i};
-            2'b10: c_data_update = {c_data_hit[127:64], p_data_i, c_data_hit[31:0]};
-            2'b01: c_data_update = {c_data_hit[127:96], p_data_i, c_data_hit[63:0]};
-            2'b00: c_data_update = {p_data_i, c_data_hit[95:0]};
-`else // KC705
+        2'b11: c_data_update = {c_data_hit[127:32], p_data_i};
+        2'b10: c_data_update = {c_data_hit[127:64], p_data_i, c_data_hit[31:0]};
+        2'b01: c_data_update = {c_data_hit[127:96], p_data_i, c_data_hit[63:0]};
+        2'b00: c_data_update = {p_data_i, c_data_hit[95:0]};
+`elsif QMCore
+        2'b11: c_data_update = {c_data_hit[127:32], p_data_i};
+        2'b10: c_data_update = {c_data_hit[127:64], p_data_i, c_data_hit[31:0]};
+        2'b01: c_data_update = {c_data_hit[127:96], p_data_i, c_data_hit[63:0]};
+        2'b00: c_data_update = {p_data_i, c_data_hit[95:0]};
+`else // KC705, Genesys2, K7BaseC, or AXKU5
             3'b111: c_data_update = {c_data_hit[255: 32], p_data_i};
             3'b110: c_data_update = {c_data_hit[255: 64], p_data_i, c_data_hit[ 31:0]};
             3'b101: c_data_update = {c_data_hit[255: 96], p_data_i, c_data_hit[ 63:0]};
@@ -687,11 +735,16 @@ always @(*) begin
     else begin
         case (line_offset)
 `ifdef ARTY
-            2'b11: c_data_update = {c_data_hit[127:32], update_data};
-            2'b10: c_data_update = {c_data_hit[127:64], update_data, c_data_hit[31:0]};
-            2'b01: c_data_update = {c_data_hit[127:96], update_data, c_data_hit[63:0]};
-            2'b00: c_data_update = {update_data, c_data_hit[95:0]};
-`else // KC705
+        2'b11: c_data_update = {c_data_hit[127:32], update_data};
+        2'b10: c_data_update = {c_data_hit[127:64], update_data, c_data_hit[31:0]};
+        2'b01: c_data_update = {c_data_hit[127:96], update_data, c_data_hit[63:0]};
+        2'b00: c_data_update = {update_data, c_data_hit[95:0]};
+`elsif QMCore
+        2'b11: c_data_update = {c_data_hit[127:32], update_data};
+        2'b10: c_data_update = {c_data_hit[127:64], update_data, c_data_hit[31:0]};
+        2'b01: c_data_update = {c_data_hit[127:96], update_data, c_data_hit[63:0]};
+        2'b00: c_data_update = {update_data, c_data_hit[95:0]};
+`else // KC705, Genesys2, K7BaseC, or AXKU5
     
             3'b111: c_data_update = {c_data_hit[255: 32], update_data};
             3'b110: c_data_update = {c_data_hit[255: 64], update_data, c_data_hit[ 31:0]};
@@ -713,7 +766,12 @@ always @(*) begin
         2'b10: m_data_update = {coherence_data_i[127:64], update_data, coherence_data_i[31:0]};
         2'b01: m_data_update = {coherence_data_i[127:96], update_data, coherence_data_i[63:0]};
         2'b00: m_data_update = {update_data, coherence_data_i[95:0]};
-`else // KC705
+`elsif QMCore
+        2'b11: m_data_update = {coherence_data_i[127:32], update_data};
+        2'b10: m_data_update = {coherence_data_i[127:64], update_data, coherence_data_i[31:0]};
+        2'b01: m_data_update = {coherence_data_i[127:96], update_data, coherence_data_i[63:0]};
+        2'b00: m_data_update = {update_data, coherence_data_i[95:0]};
+`else // KC705, Genesys2, K7BaseC, or AXKU5
         3'b111: m_data_update = {coherence_data_i[255: 32], update_data};
         3'b110: m_data_update = {coherence_data_i[255: 64], update_data, coherence_data_i[ 31:0]};
         3'b101: m_data_update = {coherence_data_i[255: 96], update_data, coherence_data_i[ 63:0]};
@@ -879,9 +937,9 @@ endgenerate
 // own get S   ->                 valid <= 1    (I -> E/S)
 // own get M   ->                 valid <= 1    (I -> M)
 // other get M ->                 valid <= 0    (M/E/S -> I)
-wire valid_data = S == RdfromMem && coherence_done_i ? 1'b1 : 1'b0;  // own get S/M
+assign valid_data = S == RdfromMem && coherence_done_i ? 1'b1 : 1'b0;  // own get S/M
 
-wire [LINE_BITS-1 : 0] valid_write_addr = 
+assign valid_write_addr = 
             (S_nxt == WbtoMemAllFinish)? N_LINES_cnt :
             (S == Init)? init_count :
             (PROBE_S == PROBE_Analysis && invalidate_r && probe_cache_hit) ? probe_line_index :  //other get M
@@ -917,10 +975,10 @@ endgenerate
 // own write hit ->              dirty <= 1    (M/E/S -> M)
 // own get E->                    dirty <= 0    (I -> E/S)
 // own get M->                    dirty <= 1    (I -> M)
-wire dirty_data = (S == RdfromMem && coherence_done_i && p_rw_r) ||  // own get M
+assign dirty_data = (S == RdfromMem && coherence_done_i && p_rw_r) ||  // own get M
                  (S == Analysis && cache_hit && p_rw_r) ? 1'b1 : 1'b0;            // own write hit
 
-wire [LINE_BITS-1 : 0] dirty_waddr =
+assign dirty_waddr =
                      (S_nxt == WbtoMemAllFinish)? N_LINES_cnt :
                          (S == Init)? init_count :  
                 ((PROBE_S == PROBE_Analysis && probe_cache_hit) ?  probe_line_index : line_index); 
@@ -955,10 +1013,10 @@ endgenerate
 // own get M->                    share <= 0    (I -> M)
 // other get S ->                 share <= 1    (M/E/S -> S)
 // other get M ->                 share <= 0    (M/E/S -> I) (clean share bit)
-wire share_data = (PROBE_S == PROBE_Analysis && probe_cache_hit && !invalidate_r) ||          //other getS
+assign share_data = (PROBE_S == PROBE_Analysis && probe_cache_hit && !invalidate_r) ||          //other getS
                   (S == RdfromMem && coherence_done_i && !make_exclusive_i && !p_rw_r)? 1'b1 : 1'b0;       // own getS
 
-wire [LINE_BITS-1 : 0] share_waddr =
+assign share_waddr =
                     (S_nxt == WbtoMemAllFinish)? N_LINES_cnt :
                  ((S == RdfromMem && coherence_done_i)|| (S == WriteHitShare && coherence_done_i) ) ?                           // own getS, getM
                   line_index  :
@@ -1058,58 +1116,58 @@ endgenerate
 //        end
 // end
 
-reg [15:0] curr_latency;
-// reg miss_flag, write_share_flag;
-reg replace_flag;
+// reg [15:0] curr_latency;
+// // reg miss_flag, write_share_flag;
+// reg replace_flag;
 
-// (* mark_debug = "true" *)reg [63:0]  I2M_latency, I2E_latency, I2S_latency;
-// (* mark_debug = "true" *)reg [31:0]  S2M_latency;
-(* mark_debug = "true" *)reg [63:0]  M2replaced_latency, E2replaced_latency;
+// // (* mark_debug = "true" *)reg [63:0]  I2M_latency, I2E_latency, I2S_latency;
+// // (* mark_debug = "true" *)reg [31:0]  S2M_latency;
+// (* mark_debug = "true" *)reg [63:0]  M2replaced_latency, E2replaced_latency;
 
-always @(posedge clk_i ) begin
-    if(rst_i) begin
-        // I2M_latency <= 0;
-        // I2E_latency <= 0;
-        // I2S_latency <= 0;
-        // S2M_latency <= 0;
-        M2replaced_latency <= 0;
-        E2replaced_latency <= 0;
-        // miss_flag <= 0;
-        // write_share_flag <= 0;
-        replace_flag <= 0;
-    end
-    else begin
-        // if(S_nxt == RdfromMem)  miss_flag <= 1;
-        // else if(S_nxt == WriteHitShare)  write_share_flag <= 1;
-        if(S_nxt == WbtoMem) replace_flag <= 1;
-        // else if(S == WriteHitShare & coherence_done_i) begin
-        //     write_share_flag <= 0;
-        //     S2M_latency <= S2M_latency + curr_latency;
-        // end
-        else if(S == WbtoMem & coherence_done_i) begin
-            replace_flag <= 0;
-            if(busy_flushing_o) begin
-                if(c_dirty_o[N_WAYS_cnt]) M2replaced_latency <= M2replaced_latency + curr_latency;
-                else E2replaced_latency <= E2replaced_latency + curr_latency;
-            end
-            else begin
-                if(c_dirty_o[victim_sel]) M2replaced_latency <= M2replaced_latency + curr_latency;
-                else E2replaced_latency <= E2replaced_latency + curr_latency;
-            end
-        end
-        // else if(S == RdfromMem & coherence_done_i) begin
-        //     miss_flag <= 0;
-        //     if(p_rw_r) I2M_latency <= I2M_latency + curr_latency;
-        //     else if(make_exclusive_i) I2E_latency <= I2E_latency + curr_latency;
-        //     else I2S_latency <= I2S_latency + curr_latency;
-        // end
-    end
-end
+// always @(posedge clk_i ) begin
+//     if(rst_i) begin
+//         // I2M_latency <= 0;
+//         // I2E_latency <= 0;
+//         // I2S_latency <= 0;
+//         // S2M_latency <= 0;
+//         M2replaced_latency <= 0;
+//         E2replaced_latency <= 0;
+//         // miss_flag <= 0;
+//         // write_share_flag <= 0;
+//         replace_flag <= 0;
+//     end
+//     else begin
+//         // if(S_nxt == RdfromMem)  miss_flag <= 1;
+//         // else if(S_nxt == WriteHitShare)  write_share_flag <= 1;
+//         if(S_nxt == WbtoMem) replace_flag <= 1;
+//         // else if(S == WriteHitShare & coherence_done_i) begin
+//         //     write_share_flag <= 0;
+//         //     S2M_latency <= S2M_latency + curr_latency;
+//         // end
+//         else if(S == WbtoMem & coherence_done_i) begin
+//             replace_flag <= 0;
+//             if(busy_flushing_o) begin
+//                 if(c_dirty_o[N_WAYS_cnt]) M2replaced_latency <= M2replaced_latency + curr_latency;
+//                 else E2replaced_latency <= E2replaced_latency + curr_latency;
+//             end
+//             else begin
+//                 if(c_dirty_o[victim_sel]) M2replaced_latency <= M2replaced_latency + curr_latency;
+//                 else E2replaced_latency <= E2replaced_latency + curr_latency;
+//             end
+//         end
+//         // else if(S == RdfromMem & coherence_done_i) begin
+//         //     miss_flag <= 0;
+//         //     if(p_rw_r) I2M_latency <= I2M_latency + curr_latency;
+//         //     else if(make_exclusive_i) I2E_latency <= I2E_latency + curr_latency;
+//         //     else I2S_latency <= I2S_latency + curr_latency;
+//         // end
+//     end
+// end
 
-always @(posedge clk_i ) begin
-    if(rst_i) curr_latency <= 0;
-    else if(replace_flag) curr_latency <= curr_latency + 1;
-    else curr_latency <= 0;
-end
+// always @(posedge clk_i ) begin
+//     if(rst_i) curr_latency <= 0;
+//     else if(replace_flag) curr_latency <= curr_latency + 1;
+//     else curr_latency <= 0;
+// end
 
 endmodule

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#define N 256
-#define TIMES 1
+#define N 16
+#define TIMES 100
 #define CORE_NUM 4
 volatile unsigned int *print_lock = (unsigned int *)0x80000020U;  
 

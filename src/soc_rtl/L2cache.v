@@ -194,7 +194,8 @@ always @(*)
 begin
     case (S)
         Idle:
-            if (probe_strobe_i || wb_i || invalidate_i)
+            if(need_invalidate) S_nxt = Invalidate_L1;
+            else if (probe_strobe_i || wb_i || invalidate_i)
                 S_nxt = Analysis;
             else
                 S_nxt = Idle;
@@ -204,7 +205,8 @@ begin
                     S_nxt = Idle;
                 else if(EorM_hit_all || Wb_Miss_Clean)
                     S_nxt = Idle;
-                else if(c_dirty_o[victim_sel] && c_valid_o[victim_sel]) // dirty and valid block
+                else if(c_valid_o[victim_sel] && c_dirty_o[victim_sel]) // dirty and valid block
+                // else if(c_valid_o[victim_sel] && (c_dirty_o[victim_sel] || c_share_o[victim_sel]))
                     S_nxt = WbtoMem;
                 else
                     S_nxt = RdfromMem;
@@ -273,7 +275,7 @@ always @(posedge clk_i) begin
         need_invalidate <= 0;
         invalidate_L1_addr_o <= 0;
     end
-    else if (S_nxt == WbtoMem && c_share_o[victim_sel]) begin
+    else if (S == Analysis && !cache_hit && c_valid_o[victim_sel] && c_share_o[victim_sel]) begin
         need_invalidate <= 1;
         invalidate_L1_addr_o <= {c_tag_o[victim_sel], line_index, {WORD_BITS{1'b0}}, 2'b0};
     end
@@ -289,10 +291,9 @@ end
 
 assign invalidate_L1_o = S_nxt == Invalidate_L1;
 
-
 // a signal to indicate EorM miss and victim is clean when L1 write back to L2
-wire Wb_Miss_Clean = S == Analysis && !cache_hit && (!c_dirty_o[victim_sel] || !c_valid_o[victim_sel]) && wb_i;
-//  wire Wb_Miss_Clean = S == Analysis && !cache_hit && !(c_valid_o[victim_sel] && (c_dirty_o[victim_sel] || c_share_o[victim_sel]))  && wb_i;
+// wire Wb_Miss_Clean = S == Analysis && !cache_hit && !c_valid_o[victim_sel]   && wb_i;
+wire Wb_Miss_Clean = S == Analysis && !cache_hit && !(c_valid_o[victim_sel] && (c_dirty_o[victim_sel]))  && wb_i;
 // Check and see if any cache way has the matched memory block.
 
 assign EorM_hit[0] = ((c_tag_o[0] == tag) && (c_share_o[0] == 1) && (c_valid_o[0] == 0));

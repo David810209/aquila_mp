@@ -22,6 +22,9 @@
 //    Added an option to infer a fast Xilinx 1- or 3-cycle 32-bit x 32-bit
 //    multiplier.
 //
+//  Apr/26/2024, by Lin-En Yen:
+//    Fix a bug of the output signal "ready_o".
+//
 // -----------------------------------------------------------------------------
 //  License information:
 //

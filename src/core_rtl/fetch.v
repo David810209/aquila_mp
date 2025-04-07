@@ -97,7 +97,7 @@ module fetch #( parameter XLEN = 32 )
     output reg              branch_hit_o,
     output reg              branch_decision_o,
 
-     // Has instruction fetch being successiful?
+    // Has instruction fetch being successiful?
     output reg              fetch_valid_o, // Validity of the Fetch stage.
     output reg              xcpt_valid_o,  // Any valid exception?
     output reg [ 3 : 0]     xcpt_cause_o,  // Cause of the exception (if any).

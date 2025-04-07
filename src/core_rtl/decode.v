@@ -118,13 +118,14 @@ module decode #(parameter XLEN = 32)
     output reg [ 4 : 0]     csr_imm_o,
 
     // to Execute
+    output reg [ 2 : 0]     rd_input_sel_o,
     output reg [ 4 : 0]     rd_addr_o,
-    output reg              regfile_we_o,
-    output reg [ 2 : 0]     regfile_input_sel_o,
+    output reg              rd_we_o,
+    output reg              signex_sel_o, // sign-extension select
+
     output reg              we_o,
     output reg              re_o,
     output reg [ 1 : 0]     dsize_sel_o,  // data size select
-    output reg              signex_sel_o, // sign-extension select
     output reg              is_amo_o,
     output reg [ 4 : 0]     amo_type_o,
 
@@ -154,17 +155,18 @@ module decode #(parameter XLEN = 32)
 );
 
 // Interal signals of the Decode Stage.
-wire [XLEN-1 : 0] imm;
+reg  [ 2 : 0]     rd_input_sel;
 wire [ 4 : 0]     rd_addr;
+wire              rd_we;
+wire              signex_sel;     // for lb, lbu, lh and lhu.
+
 wire              we;
 wire              re;
-wire              regfile_we;
+wire [XLEN-1 : 0] imm;
 reg  [ 1 : 0]     inputA_sel;
 reg  [ 1 : 0]     inputB_sel;
-reg  [ 2 : 0]     regfile_input_sel;
 wire [ 2 : 0]     operation_sel;
 wire [ 1 : 0]     dsize_sel;
-wire              signex_sel;     // for lb, lbu, lh and lhu.
 wire              alu_muldiv_sel; // for rv32m operation.
 wire              shift_sel;      // for shift right operation.
 wire [ 4 : 0]     csr_imm;
@@ -183,10 +185,10 @@ wire [ 4 : 0]     csr_imm;
  *              (2) -rs2 (SUB)                                                   *
  * ----------------------------------------------------------------------------- *
  *      There are 6 possible input sources to the register file, determined by   *
- *      regfile_input_sel:                                                       *
+ *      rd_input_sel:                                                            *
  *              (0) one byte from data memory                                    *
- *              (1) half of word from data memory                                *
- *              (2) word from data memory                                        *
+ *              (1) a half word from data memory                                 *
+ *              (2) one word from data memory                                    *
  *              (3) pc + 4 (pc of next instruction)                              *
  *              (4) execute result                                               *
  *              (5) csr value                                                    *
@@ -378,11 +380,40 @@ wire rv32_sh = rv32_store & rv32_funct3_001;
 wire rv32_sw = rv32_store & rv32_funct3_010;
 
 // ================================================================================
+// Supervisor Instructions
+//
+wire rv32_sfence_vma = rv32_funct7_0001001 && rv32_funct3_000 && opcode_6_5_11 && opcode_4_2_100 && opcode_1_0_11;
+wire rv32_sfence_type = (rs1_addr_o != 0);
+
 // Exception Signals
 //
-wire [ 3: 0] xcpt_cause = (privilege_lvl_i == 2'b11)?'d11:
-                         (privilege_lvl_i == 2'b01)?'d9 :'d8;
-wire [31: 0] xcpt_tval  = 0;
+wire         rv32_legal_instr   = (rv32_op | rv32_op_imm | rv32_jal | rv32_jalr | rv32_load | rv32_store |
+                                   rv32_branch | rv32_lui | rv32_auipc | rv32_miscmem | rv32_system | rv32_amo) 
+                                   & opcode_1_0_11; //indicate whether instruction_i is supported, rv32_instr[1:0] should hardwired to 2'b11
+wire         rv32_shift         = rv32_op_imm & (rv32_funct3_001 | rv32_funct3_101) ; // slli, srli, srai instructions                                 
+wire         rv32_illegal_shift = rv32_shift & rv32_instr[25]; //shmnt[5](rv32_instr[25]) of shift instructions should be 0
+wire         rv32_time          = rv32_csr && (csr_addr_o == 12'hC01);
+wire         rv32_timeh         = rv32_csr && (csr_addr_o == 12'hC81);
+wire         rv32_stimecmp      = rv32_csr && (csr_addr_o == 12'h14D);
+wire         rv32_stimecmph     = rv32_csr && (csr_addr_o == 12'h15D);
+wire         rv32_scountovf     = rv32_csr && (csr_addr_o == 12'hDA0);
+wire         rv32_mtopi         = rv32_csr && (csr_addr_o == 12'hFB0);
+wire         rv32_mstateen0     = rv32_csr && (csr_addr_o == 12'h30C);
+
+// shuold handle in csr_file or it will add a lot of signals here.
+wire         rv32_unsupport_csr = rv32_time || rv32_timeh || rv32_stimecmp || rv32_stimecmph
+                                  || rv32_scountovf || rv32_mtopi || rv32_mstateen0;
+wire         rv32_illegal_XRET  = (rv32_mret && privilege_lvl_i != 2'b11) || (rv32_sret && privilege_lvl_i == 2'b00); // XRET in wrong mode
+wire         rv32_illegal_instr_xcpt = !rv32_legal_instr || rv32_illegal_shift 
+                                       || rv32_illegal_XRET
+                                       || rv32_unsupport_csr; // to indicate whether illegal instruction excetopn occured
+
+wire         xcpt_valid = rv32_ecall | rv32_ebreak | rv32_illegal_instr_xcpt;
+wire [ 3: 0] xcpt_cause = (rv32_ecall)? (privilege_lvl_i == 2'b11)? 'd11 : (privilege_lvl_i == 2'b01)? 'd9 : 'd8
+                        : (rv32_ebreak)? 'd3
+                        : (rv32_illegal_instr_xcpt)? 'd2
+                        : 'd0;
+wire [31: 0] xcpt_tval  = (rv32_illegal_instr_xcpt)? instruction_i : 0;
 
 // ================================================================================
 //  Output Signals
@@ -399,8 +430,8 @@ assign imm =
 //   # BRANCH, STORE,
 //   # FENCE, FENCE.I
 //   # ECALL, EBREAK
-assign regfile_we = rv32_lui | rv32_auipc | rv32_load | rv32_op_imm |
-                    rv32_op | rv32_csr | rv32_amo | rv32_jal | rv32_jalr;
+assign rd_we = rv32_lui | rv32_auipc | rv32_load | rv32_op_imm |
+               rv32_op | rv32_csr | rv32_amo | rv32_jal | rv32_jalr;
 
 assign re = rv32_load | rv32_amo; // AMO instr. also need to load d-cache data
 assign we = rv32_store;
@@ -460,17 +491,17 @@ end
 always @(*)
 begin
     if (rv32_lb | rv32_lbu)
-        regfile_input_sel = 0; // load byte
+        rd_input_sel = 0; // load byte
     else if (rv32_lh | rv32_lhu)
-        regfile_input_sel = 1; // load half word
+        rd_input_sel = 1; // load half word
     else if (rv32_lw | rv32_amo)
-        regfile_input_sel = 2; // load word
+        rd_input_sel = 2; // load word
     else if (rv32_jal | rv32_jalr)
-        regfile_input_sel = 3; // pc+4
+        rd_input_sel = 3; // pc+4
     else if (rv32_csr)
-        regfile_input_sel = 5; // csr
+        rd_input_sel = 5; // csr
     else
-        regfile_input_sel = 4; // execute result
+        rd_input_sel = 4; // execute result
 end
 
 // the instructions that are not supported currently
@@ -498,8 +529,8 @@ begin
         is_branch_o <= 0;
         is_jal_o <= 0;
         is_jalr_o <= 0;
-        regfile_we_o <= 1;
-        regfile_input_sel_o <= 4; // send Execute result into the RFU.
+        rd_we_o <= 1;
+        rd_input_sel_o <= 4; // send Execute result into the RFU.
         we_o <= 0;
         re_o <= 0;
         dsize_sel_o <= 0;
@@ -538,8 +569,8 @@ begin
         is_branch_o <= is_branch_o;
         is_jal_o <= is_jal_o;
         is_jalr_o <= is_jalr_o;
-        regfile_we_o <= regfile_we_o;
-        regfile_input_sel_o <= regfile_input_sel_o;
+        rd_we_o <= rd_we_o;
+        rd_input_sel_o <= rd_input_sel_o;
         we_o <= we_o;
         re_o <= re_o;
         dsize_sel_o <= dsize_sel_o;
@@ -562,7 +593,7 @@ begin
         csr_data2fwd_o <= csr_data2fwd_o;
         csr_addr2fwd_o <= csr_addr2fwd_o;
     end
-    else if (rv32_ecall)
+    else if (xcpt_valid)
     begin
         pc_o <= pc_i;
         fetch_valid_o <= 1;
@@ -579,8 +610,8 @@ begin
         is_branch_o <= 0;
         is_jal_o <= 0;
         is_jalr_o <= 0;
-        regfile_we_o <= 1;
-        regfile_input_sel_o <= 4;  // send Execute result into the RFU.
+        rd_we_o <= 1;
+        rd_input_sel_o <= 4;  // send Execute result into the RFU.
         we_o <= 0;
         re_o <= 0;
         dsize_sel_o <= 0;
@@ -597,7 +628,7 @@ begin
 
         sys_jump_o <= 0;
         sys_jump_csr_addr_o <= 0;
-        xcpt_valid_o <= 1;
+        xcpt_valid_o <= xcpt_valid;
         xcpt_cause_o <= xcpt_cause;
         xcpt_tval_o <= xcpt_tval;
         csr_data2fwd_o <= 0;
@@ -619,8 +650,8 @@ begin
         is_branch_o <= rv32_branch;
         is_jal_o <= rv32_jal;
         is_jalr_o <= rv32_jalr;
-        regfile_we_o <= regfile_we;
-        regfile_input_sel_o <= regfile_input_sel;
+        rd_we_o <= rd_we;
+        rd_input_sel_o <= rd_input_sel;
         we_o <= we;
         re_o <= re;
         dsize_sel_o <= dsize_sel;

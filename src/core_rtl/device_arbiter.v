@@ -1,20 +1,21 @@
+`timescale 1ns / 1ps
 // =============================================================================
 //  Program : device_arbiter_new.v
 // =============================================================================
 `include "aquila_config.vh"
 
-module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
+module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS = `CORE_NUMS,parameter CORE_NUMS_BITS =2)
 (
     // System signals
     input                       clk_i, rst_i,
     //===================== CORE 0-3 =====================//
-    input                       P_DEVICE_strobe_i[0 : 3],
-    input [XLEN-1 : 0]          P_DEVICE_addr_i[0 : 3],
-    input                       P_DEVICE_rw_i[0 : 3],
-    input [XLEN/8-1 : 0]        P_DEVICE_byte_enable_i[0 : 3],
-    input [XLEN-1 : 0]          P_DEVICE_data_i[0 : 3],
-    output                      P_DEVICE_data_ready_o[0 : 3],
-    output [XLEN-1 : 0]         P_DEVICE_data_o[0 : 3],
+    input                       P_DEVICE_strobe_i[0 : CORE_NUMS-1],
+    input [XLEN-1 : 0]          P_DEVICE_addr_i[0 : CORE_NUMS-1],
+    input                       P_DEVICE_rw_i[0 : CORE_NUMS-1],
+    input [XLEN/8-1 : 0]        P_DEVICE_byte_enable_i[0 : CORE_NUMS-1],
+    input [XLEN-1 : 0]          P_DEVICE_data_i[0 : CORE_NUMS-1],
+    output reg                  P_DEVICE_data_ready_o[0 : CORE_NUMS-1],
+    output reg [XLEN-1 : 0]     P_DEVICE_data_o[0 : CORE_NUMS-1],
 
     // Aquila device slave interface
     output                      DEVICE_strobe_o,
@@ -25,14 +26,18 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
     input                       DEVICE_data_ready_i,
     input [XLEN-1 : 0]          DEVICE_data_i,
 
-    output reg [1:0]            uart_core_sel_o
+    output reg [CORE_NUMS_BITS-1:0]            uart_core_sel_o
 );
 
     // Strobe source, have two strobe sources (P0-MEM, P1-MEM) 
     localparam P0_STROBE = 0,
                P1_STROBE = 1,
                P2_STROBE = 2,
-               P3_STROBE = 3;
+               P3_STROBE = 3,
+                P4_STROBE = 4,
+                P5_STROBE = 5,
+                P6_STROBE = 6,
+                P7_STROBE = 7;
 
     localparam M_IDLE   = 0, // wait for strobe
                M_CHOOSE = 1, // choose 
@@ -40,7 +45,7 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
 
     // input selection signals
     wire                     concurrent_strobe;
-    reg  [1:0]               sel_current;
+    reg  [CORE_NUMS_BITS-1:0]               sel_current;
     reg                      sel_previous;
  
     reg                      DEVICE_strobe_r;
@@ -50,120 +55,134 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
     reg  [XLEN-1 : 0]        DEVICE_data_r;
 
     // Keep the strobe
-    reg                      P_DEVICE_strobe_r[0 : 3];
-    reg  [XLEN-1 : 0]        P_DEVICE_addr_r[0 : 3];
-    reg                      P_DEVICE_rw_r[0 : 3];
-    reg  [XLEN/8-1 : 0]      P_DEVICE_byte_enable_r[0 : 3];
-    reg  [XLEN-1 : 0]        P_DEVICE_data_r[0 : 3];
+    reg                      P_DEVICE_strobe_r[0 : CORE_NUMS-1];
+    reg  [XLEN-1 : 0]        P_DEVICE_addr_r[0 : CORE_NUMS-1];
+    reg                      P_DEVICE_rw_r[0 : CORE_NUMS-1];
+    reg  [XLEN/8-1 : 0]      P_DEVICE_byte_enable_r[0 : CORE_NUMS-1];
+    reg  [XLEN-1 : 0]        P_DEVICE_data_r[0 : CORE_NUMS-1];
 
     
     // FSM signals
     reg  [2 : 0]             c_state;
     reg  [1 : 0]             n_state;
     wire                     have_strobe;
-    
+    integer i;
     //=======================================================
     //  Keep the strobe (in case we miss strobe)
     //=======================================================
     // P0-DEVICE slave interface
     always @(posedge clk_i) begin
-        if (rst_i)
-            P_DEVICE_strobe_r[0] <= 0;
-        else if (P_DEVICE_strobe_i[0])
-            P_DEVICE_strobe_r[0] <= 1;
-        else if (P_DEVICE_data_ready_o[0])
-            P_DEVICE_strobe_r[0] <= 0; // Clear the strobe
-    end
-
-    always @(posedge clk_i) begin
         if (rst_i) begin
-            P_DEVICE_addr_r[0] <= 0;
-            P_DEVICE_rw_r[0] <= 0;
-            P_DEVICE_byte_enable_r[0] <= 0;
-            P_DEVICE_data_r[0] <= 0;
+            for(i = 0; i < `CORE_NUMS; i = i + 1) begin
+                P_DEVICE_strobe_r[i] <= 0;
+            end
         end 
-        else if (P_DEVICE_strobe_i[0]) begin
-            P_DEVICE_addr_r[0] <= P_DEVICE_addr_i[0];
-            P_DEVICE_rw_r[0] <= P_DEVICE_rw_i[0];
-            P_DEVICE_byte_enable_r[0] <= P_DEVICE_byte_enable_i[0];
-            P_DEVICE_data_r[0] <= P_DEVICE_data_i[0];
+        else begin
+             for(i = 0; i < `CORE_NUMS; i = i + 1) begin
+                if(P_DEVICE_strobe_i[i]) begin
+                    P_DEVICE_strobe_r[i] <= 1;
+                end
+                else if(P_DEVICE_data_ready_o[i]) begin
+                    P_DEVICE_strobe_r[i] <= 0; // Clear the strobe
+                end
+            end
         end
-    end
-
-
-    // P1-DEVICE slave interface
-    always @(posedge clk_i) begin
-        if (rst_i)
-            P_DEVICE_strobe_r[1] <= 0;
-        else if (P_DEVICE_strobe_i[1])
-            P_DEVICE_strobe_r[1] <= 1;
-        else if (P_DEVICE_data_ready_o[1])
-            P_DEVICE_strobe_r[1] <= 0; // Clear the strobe
     end
 
     always @(posedge clk_i) begin
         if (rst_i) begin
-            P_DEVICE_addr_r[1] <= 0;
-            P_DEVICE_rw_r[1] <= 0;
-            P_DEVICE_byte_enable_r[1] <= 0;
-            P_DEVICE_data_r[1] <= 0;
-        end else if (P_DEVICE_strobe_i[1]) begin
-            P_DEVICE_addr_r[1] <= P_DEVICE_addr_i[1];
-            P_DEVICE_rw_r[1] <= P_DEVICE_rw_i[1];
-            P_DEVICE_byte_enable_r[1] <= P_DEVICE_byte_enable_i[1];
-            P_DEVICE_data_r[1] <= P_DEVICE_data_i[1];
+            for(i = 0; i < `CORE_NUMS; i = i + 1) begin
+                P_DEVICE_addr_r[i] <= 0;
+                P_DEVICE_rw_r[i] <= 0;
+                P_DEVICE_byte_enable_r[i] <= 0;
+                P_DEVICE_data_r[i] <= 0;
+            end
+        end 
+        else begin
+             for(i = 0; i < `CORE_NUMS; i = i + 1) begin
+                if(P_DEVICE_strobe_i[i]) begin
+                    P_DEVICE_addr_r[i] <= P_DEVICE_addr_i[i];
+                    P_DEVICE_rw_r[i] <= P_DEVICE_rw_i[i];
+                    P_DEVICE_byte_enable_r[i] <= P_DEVICE_byte_enable_i[i];
+                    P_DEVICE_data_r[i] <= P_DEVICE_data_i[i];
+                end
+            end
         end
     end
 
+    // // P1-DEVICE slave interface
+    // always @(posedge clk_i) begin
+    //     if (rst_i)
+    //         P_DEVICE_strobe_r[1] <= 0;
+    //     else if (P_DEVICE_strobe_i[1])
+    //         P_DEVICE_strobe_r[1] <= 1;
+    //     else if (P_DEVICE_data_ready_o[1])
+    //         P_DEVICE_strobe_r[1] <= 0; // Clear the strobe
+    // end
 
-    // P2-DEVICE slave interface
-    always @(posedge clk_i) begin
-        if (rst_i)
-            P_DEVICE_strobe_r[2] <= 0;
-        else if (P_DEVICE_strobe_i[2])
-            P_DEVICE_strobe_r[2] <= 1;
-        else if (P_DEVICE_data_ready_o[2])
-            P_DEVICE_strobe_r[2] <= 0; // Clear the strobe
-    end
-
-    always @(posedge clk_i) begin
-        if (rst_i) begin
-            P_DEVICE_addr_r[2] <= 0;
-            P_DEVICE_rw_r[2] <= 0;
-            P_DEVICE_byte_enable_r[2] <= 0;
-            P_DEVICE_data_r[2] <= 0;
-        end else if (P_DEVICE_strobe_i[2]) begin
-            P_DEVICE_addr_r[2] <= P_DEVICE_addr_i[2];
-            P_DEVICE_rw_r[2] <= P_DEVICE_rw_i[2];
-            P_DEVICE_byte_enable_r[2] <= P_DEVICE_byte_enable_i[2];
-            P_DEVICE_data_r[2] <= P_DEVICE_data_i[2];
-        end
-    end
+    // always @(posedge clk_i) begin
+    //     if (rst_i) begin
+    //         P_DEVICE_addr_r[1] <= 0;
+    //         P_DEVICE_rw_r[1] <= 0;
+    //         P_DEVICE_byte_enable_r[1] <= 0;
+    //         P_DEVICE_data_r[1] <= 0;
+    //     end else if (P_DEVICE_strobe_i[1]) begin
+    //         P_DEVICE_addr_r[1] <= P_DEVICE_addr_i[1];
+    //         P_DEVICE_rw_r[1] <= P_DEVICE_rw_i[1];
+    //         P_DEVICE_byte_enable_r[1] <= P_DEVICE_byte_enable_i[1];
+    //         P_DEVICE_data_r[1] <= P_DEVICE_data_i[1];
+    //     end
+    // end
 
 
-    // P3-DEVICE slave interface
-    always @(posedge clk_i) begin
-        if (rst_i)
-            P_DEVICE_strobe_r[3] <= 0;
-        else if (P_DEVICE_strobe_i[3])
-            P_DEVICE_strobe_r[3] <= 1;
-        else if (P_DEVICE_data_ready_o[3])
-            P_DEVICE_strobe_r[3] <= 0; // Clear the strobe
-    end
+    // // P2-DEVICE slave interface
+    // always @(posedge clk_i) begin
+    //     if (rst_i)
+    //         P_DEVICE_strobe_r[2] <= 0;
+    //     else if (P_DEVICE_strobe_i[2])
+    //         P_DEVICE_strobe_r[2] <= 1;
+    //     else if (P_DEVICE_data_ready_o[2])
+    //         P_DEVICE_strobe_r[2] <= 0; // Clear the strobe
+    // end
 
-    always @(posedge clk_i) begin
-        if (rst_i) begin
-            P_DEVICE_addr_r[3] <= 0;
-            P_DEVICE_rw_r[3] <= 0;
-            P_DEVICE_byte_enable_r[3] <= 0;
-            P_DEVICE_data_r[3] <= 0;
-        end else if (P_DEVICE_strobe_i[3]) begin
-            P_DEVICE_addr_r[3] <= P_DEVICE_addr_i[3];
-            P_DEVICE_rw_r[3] <= P_DEVICE_rw_i[3];
-            P_DEVICE_byte_enable_r[3] <= P_DEVICE_byte_enable_i[3];
-            P_DEVICE_data_r[3] <= P_DEVICE_data_i[3];
-        end
-    end
+    // always @(posedge clk_i) begin
+    //     if (rst_i) begin
+    //         P_DEVICE_addr_r[2] <= 0;
+    //         P_DEVICE_rw_r[2] <= 0;
+    //         P_DEVICE_byte_enable_r[2] <= 0;
+    //         P_DEVICE_data_r[2] <= 0;
+    //     end else if (P_DEVICE_strobe_i[2]) begin
+    //         P_DEVICE_addr_r[2] <= P_DEVICE_addr_i[2];
+    //         P_DEVICE_rw_r[2] <= P_DEVICE_rw_i[2];
+    //         P_DEVICE_byte_enable_r[2] <= P_DEVICE_byte_enable_i[2];
+    //         P_DEVICE_data_r[2] <= P_DEVICE_data_i[2];
+    //     end
+    // end
+
+
+    // // P3-DEVICE slave interface
+    // always @(posedge clk_i) begin
+    //     if (rst_i)
+    //         P_DEVICE_strobe_r[3] <= 0;
+    //     else if (P_DEVICE_strobe_i[3])
+    //         P_DEVICE_strobe_r[3] <= 1;
+    //     else if (P_DEVICE_data_ready_o[3])
+    //         P_DEVICE_strobe_r[3] <= 0; // Clear the strobe
+    // end
+
+    // always @(posedge clk_i) begin
+    //     if (rst_i) begin
+    //         P_DEVICE_addr_r[3] <= 0;
+    //         P_DEVICE_rw_r[3] <= 0;
+    //         P_DEVICE_byte_enable_r[3] <= 0;
+    //         P_DEVICE_data_r[3] <= 0;
+    //     end else if (P_DEVICE_strobe_i[3]) begin
+    //         P_DEVICE_addr_r[3] <= P_DEVICE_addr_i[3];
+    //         P_DEVICE_rw_r[3] <= P_DEVICE_rw_i[3];
+    //         P_DEVICE_byte_enable_r[3] <= P_DEVICE_byte_enable_i[3];
+    //         P_DEVICE_data_r[3] <= P_DEVICE_data_i[3];
+    //     end
+    // end
 
 
     //=======================================================
@@ -178,7 +197,24 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
     //     else if (c_state == M_CHOOSE)
     //         sel_previous <= sel_current;
     // end
-
+`ifdef CORE_NUMS_2
+    always @(posedge clk_i) begin
+        if (rst_i) 
+            sel_current <= 0;
+        else if(c_state == M_IDLE)begin
+            if(P_DEVICE_strobe_r[0]) begin
+                sel_current <= P0_STROBE;
+                if(P_DEVICE_addr_r[0][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 0;
+            end
+            else if(P_DEVICE_strobe_r[1]) begin
+                sel_current <= P1_STROBE;
+                if(P_DEVICE_addr_r[1][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 1;
+            end
+        end
+    end
+`elsif CORE_NUMS_4
     always @(posedge clk_i) begin
         if (rst_i)  begin
             sel_current <= 0;
@@ -188,26 +224,75 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
             if(P_DEVICE_strobe_r[0]) begin
                 sel_current <= P0_STROBE;
                 if(P_DEVICE_addr_r[0][XLEN-1:XLEN-8] == 8'hC0)
-                    uart_core_sel_o <= 2'b00;
+                    uart_core_sel_o <= 0;
             end
             else if(P_DEVICE_strobe_r[1]) begin
                 sel_current <= P1_STROBE;
                 if(P_DEVICE_addr_r[1][XLEN-1:XLEN-8] == 8'hC0)
-                    uart_core_sel_o <= 2'b01;
+                    uart_core_sel_o <= 1;
             end
             else if(P_DEVICE_strobe_r[2]) begin
                 sel_current <= P2_STROBE;
                 if(P_DEVICE_addr_r[2][XLEN-1:XLEN-8] == 8'hC0)
-                    uart_core_sel_o <= 2'b10;
+                    uart_core_sel_o <= 2;
             end
             else if(P_DEVICE_strobe_r[3]) begin
                 sel_current <= P3_STROBE;
                 if(P_DEVICE_addr_r[3][XLEN-1:XLEN-8] == 8'hC0)
-                    uart_core_sel_o <= 2'b11;
+                    uart_core_sel_o <= 3;
             end
         end
     end
-
+`else // CORE_NUMS_8
+    always @(posedge clk_i) begin
+        if (rst_i)  begin
+            sel_current <= 0;
+            uart_core_sel_o <= 0;
+        end
+        else if(c_state == M_IDLE)begin
+            if(P_DEVICE_strobe_r[0]) begin
+                sel_current <= P0_STROBE;
+                if(P_DEVICE_addr_r[0][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 0;
+            end
+            else if(P_DEVICE_strobe_r[1]) begin
+                sel_current <= P1_STROBE;
+                if(P_DEVICE_addr_r[1][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 1;
+            end
+            else if(P_DEVICE_strobe_r[2]) begin
+                sel_current <= P2_STROBE;
+                if(P_DEVICE_addr_r[2][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 2;
+            end
+            else if(P_DEVICE_strobe_r[3]) begin
+                sel_current <= P3_STROBE;
+                if(P_DEVICE_addr_r[3][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 3;
+            end
+            else if(P_DEVICE_strobe_r[4]) begin
+                sel_current <= P4_STROBE;
+                if(P_DEVICE_addr_r[4][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 4;
+            end
+            else if(P_DEVICE_strobe_r[5]) begin
+                sel_current <= P5_STROBE;
+                if(P_DEVICE_addr_r[5][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 5;
+            end
+            else if(P_DEVICE_strobe_r[6]) begin
+                sel_current <= P6_STROBE;
+                if(P_DEVICE_addr_r[6][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 6;
+            end
+            else if(P_DEVICE_strobe_r[7]) begin
+                sel_current <= P7_STROBE;
+                if(P_DEVICE_addr_r[7][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 7;
+            end
+        end
+    end
+`endif
     /* Record selected singnals*/
     always @(posedge clk_i) begin
         if (rst_i) 
@@ -226,30 +311,10 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
             DEVICE_data_r <= 0;
         end 
         else begin
-            if (sel_current == P0_STROBE) begin
-                DEVICE_addr_r <= P_DEVICE_addr_r[0];
-                DEVICE_rw_r <= P_DEVICE_rw_r[0];
-                DEVICE_byte_enable_r <= P_DEVICE_byte_enable_r[0];
-                DEVICE_data_r <= P_DEVICE_data_r[0];
-            end 
-            else if (sel_current == P1_STROBE) begin
-                DEVICE_addr_r <= P_DEVICE_addr_r[1];
-                DEVICE_rw_r <= P_DEVICE_rw_r[1];
-                DEVICE_byte_enable_r <= P_DEVICE_byte_enable_r[1];
-                DEVICE_data_r <= P_DEVICE_data_r[1];
-            end
-            else if (sel_current == P2_STROBE) begin
-                DEVICE_addr_r <= P_DEVICE_addr_r[2];
-                DEVICE_rw_r <= P_DEVICE_rw_r[2];
-                DEVICE_byte_enable_r <= P_DEVICE_byte_enable_r[2];
-                DEVICE_data_r <= P_DEVICE_data_r[2];
-            end
-            else if (sel_current == P3_STROBE) begin
-                DEVICE_addr_r <= P_DEVICE_addr_r[3];
-                DEVICE_rw_r <= P_DEVICE_rw_r[3];
-                DEVICE_byte_enable_r <= P_DEVICE_byte_enable_r[3];
-                DEVICE_data_r <= P_DEVICE_data_r[3];
-            end
+            DEVICE_addr_r <= P_DEVICE_addr_r[sel_current];
+            DEVICE_rw_r <= P_DEVICE_rw_r[sel_current];
+            DEVICE_byte_enable_r <= P_DEVICE_byte_enable_r[sel_current];
+            DEVICE_data_r <= P_DEVICE_data_r[sel_current];
         end
     end
 
@@ -257,17 +322,23 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
     //=======================================================
     //  Output logic
     //=======================================================
-    assign P_DEVICE_data_ready_o[0] = (sel_current == P0_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
-    assign P_DEVICE_data_o[0]       = DEVICE_data_i;
+    always @(*) begin
+        for(i = 0; i < `CORE_NUMS; i = i + 1) begin
+            P_DEVICE_data_ready_o[i] = (sel_current == i && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
+            P_DEVICE_data_o[i] = DEVICE_data_i;
+        end
+    end
+    // assign P_DEVICE_data_ready_o[0] = (sel_current == P0_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
+    // assign P_DEVICE_data_o[0]       = DEVICE_data_i;
 
-    assign P_DEVICE_data_ready_o[1] = (sel_current == P1_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
-    assign P_DEVICE_data_o[1]       = DEVICE_data_i;
+    // assign P_DEVICE_data_ready_o[1] = (sel_current == P1_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
+    // assign P_DEVICE_data_o[1]       = DEVICE_data_i;
 
-    assign P_DEVICE_data_ready_o[2] = (sel_current == P2_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
-    assign P_DEVICE_data_o[2]       = DEVICE_data_i;
+    // assign P_DEVICE_data_ready_o[2] = (sel_current == P2_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
+    // assign P_DEVICE_data_o[2]       = DEVICE_data_i;
 
-    assign P_DEVICE_data_ready_o[3] = (sel_current == P3_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
-    assign P_DEVICE_data_o[3]       = DEVICE_data_i;
+    // assign P_DEVICE_data_ready_o[3] = (sel_current == P3_STROBE && c_state == M_WAIT) ? DEVICE_data_ready_i : 'b0;
+    // assign P_DEVICE_data_o[3]       = DEVICE_data_i;
     
     assign DEVICE_strobe_o        = DEVICE_strobe_r;
     assign DEVICE_addr_o          = DEVICE_addr_r;
@@ -302,7 +373,12 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS_BITS =3)
                     n_state = M_WAIT;
         endcase
     end
-
+`ifdef CORE_NUMS_2
+    assign have_strobe = P_DEVICE_strobe_r[0] | P_DEVICE_strobe_r[1];
+`elsif CORE_NUMS_4
     assign have_strobe = P_DEVICE_strobe_r[0] | P_DEVICE_strobe_r[1] | P_DEVICE_strobe_r[2] | P_DEVICE_strobe_r[3];
-    
+`else // CORE_NUMS_8
+    assign have_strobe = P_DEVICE_strobe_r[0] | P_DEVICE_strobe_r[1] | P_DEVICE_strobe_r[2] | P_DEVICE_strobe_r[3] |
+                         P_DEVICE_strobe_r[4] | P_DEVICE_strobe_r[5] | P_DEVICE_strobe_r[6] | P_DEVICE_strobe_r[7];
+`endif
 endmodule

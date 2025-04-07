@@ -72,11 +72,6 @@ module memory #( parameter XLEN = 32 )
     // Pipeline flush signal.
     input                   flush_i,
 
-    // Passing signals from Execute to Writeback
-    input  [ 2 : 0]         regfile_input_sel_i,
-    output reg [ 2 : 0]     regfile_input_sel_o,
-
-
     // From Execute stage
     input  [XLEN-1 : 0]     mem_addr_i,
     input  [1 : 0]          dsize_sel_i,      // data size (8, 16, or 32-bit)
@@ -84,8 +79,9 @@ module memory #( parameter XLEN = 32 )
     input                   we_i,
     input                   re_i,
 
-    input                   regfile_we_i,
+    input  [ 2 : 0]         rd_input_sel_i,
     input  [ 4 : 0]         rd_addr_i,
+    input                   rd_we_i,
     input                   signex_sel_i,
     input  [XLEN-1 : 0]     p_data_i,
 
@@ -93,7 +89,7 @@ module memory #( parameter XLEN = 32 )
     input  [11: 0]          csr_we_addr_i,
     input  [XLEN-1 : 0]     csr_we_data_i,
 
-    // from D-memory
+    // From D-memory
     input  [XLEN-1 : 0]     m_data_i,
 
     // To D-memory
@@ -104,8 +100,9 @@ module memory #( parameter XLEN = 32 )
     output reg              mem_align_exception_o,
 
     // To Writeback stage
-    output reg              regfile_we_o,
+    output reg [ 2 : 0]     rd_input_sel_o,
     output reg [ 4 : 0]     rd_addr_o,
+    output reg              rd_we_o,
     output reg              signex_sel_o,
 
     output reg [XLEN-1 : 0] aligned_data_o,
@@ -259,9 +256,9 @@ begin
     begin
         pc_o <= (flush_i)? pc_i : 0;
         fetch_valid_o <= 0;
-        regfile_we_o <= 0;
-        regfile_input_sel_o <= 4;
+        rd_input_sel_o <= 4;
         rd_addr_o <= 0;
+        rd_we_o <= 0;
         signex_sel_o <= 0;
 
         aligned_data_o <= 0;
@@ -275,9 +272,9 @@ begin
     begin
         pc_o <= pc_o;
         fetch_valid_o <= fetch_valid_o;
-        regfile_we_o <= regfile_we_o;
-        regfile_input_sel_o <= regfile_input_sel_o;
+        rd_input_sel_o <= rd_input_sel_o;
         rd_addr_o <= rd_addr_o;
+        rd_we_o <= rd_we_o;
         signex_sel_o <= signex_sel_o;
 
         aligned_data_o <= aligned_data_o;
@@ -291,9 +288,9 @@ begin
     begin
         pc_o <= pc_i;
         fetch_valid_o <= 1;
-        regfile_we_o <= 0;
-        regfile_input_sel_o <= 4;
+        rd_input_sel_o <= 4;
         rd_addr_o <= 0;
+        rd_we_o <= 0;
         signex_sel_o <= 0;
 
         aligned_data_o <= 0;
@@ -307,9 +304,9 @@ begin
     begin
         pc_o <= pc_i;
         fetch_valid_o <= fetch_valid_i;
-        regfile_we_o = regfile_we_i;
-        regfile_input_sel_o <= regfile_input_sel_i;
+        rd_input_sel_o <= rd_input_sel_i;
         rd_addr_o = rd_addr_i;
+        rd_we_o = rd_we_i;
         signex_sel_o = signex_sel_i;
 
         case (mem_addr_i[1 : 0])

@@ -59,8 +59,8 @@ __heap_size  = 0x2000;
 
 MEMORY
 {
-    code_ram   (rx!rw) : ORIGIN = 0x80041000, LENGTH = 0x7000
-    data_ram   (rw!x)  : ORIGIN = 0x80048000, LENGTH = 0x8000
+    code_ram   (rx!rw) : ORIGIN = 0x81041000, LENGTH = 0x7000
+    data_ram   (rw!x)  : ORIGIN = 0x81048000, LENGTH = 0x8000
 }
 
 ENTRY(crt0)

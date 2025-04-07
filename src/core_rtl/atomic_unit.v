@@ -3,7 +3,8 @@
 
 module atomic_unit #
 (
-    parameter integer N      = 4,   // number of cores
+    parameter integer CORE_NUMS      = `CORE_NUMS,   // number of cores
+    parameter integer CORE_NUMS_BITS = 2, // number of bits to represent core numbers
     parameter integer XLEN   = 32,  // Width of address bus
     parameter integer CLSIZE = `CLP // Size of a cache line in bits.
 )
@@ -11,7 +12,7 @@ module atomic_unit #
     input                 clk_i,
     input                 rst_i,
 
-    input  [1 : 0]      core_id_i, // one-hot
+    input  [CORE_NUMS_BITS-1 : 0]      core_id_i, // one-hot
     input                 core_strobe_i,
     input  [XLEN-1 : 0]   core_addr_i,
     input                 core_rw_i,
@@ -46,12 +47,12 @@ reg  [ 2 : 0]          state;
 reg  [ 2 : 0]          state_next;
 
 // LR/SC
-reg  [$clog2(N) : 0]   core_id_bin;
-reg  [XLEN-1 : 2]      reservation_addr [N-1:0];
-reg  [N-1 : 0]         reservation;
-reg  [N-1 : 0]         addr_h_match; // for cache write-back
-reg  [N-1 : 0]         addr_l_match;
-reg  [N-1 : 0]         rm_reservation;
+reg  [CORE_NUMS_BITS-1 : 0]   core_id_bin;
+reg  [XLEN-1 : 2]      reservation_addr [0:CORE_NUMS-1];
+reg                   reservation [0:CORE_NUMS-1];
+reg                   addr_h_match [0:CORE_NUMS-1];// for cache write-back
+reg                   addr_l_match [0:CORE_NUMS-1];
+reg                   rm_reservation [0:CORE_NUMS-1];
 wire                   sc_fail;
 
 // type
@@ -126,21 +127,44 @@ always @(posedge clk_i ) begin
 end
 
 // LR/SC logic
+`ifdef CORE_NUMS_2
 always @(*) begin
     case (core_id_i)
-        2'b00: core_id_bin = 0;
-        2'b01: core_id_bin = 1;
-        2'b10: core_id_bin = 2;
-        2'b11: core_id_bin = 3;
+        0: core_id_bin = 0;
+        1: core_id_bin = 1;
         default: core_id_bin = 0;
     endcase
 end
-
+`elsif CORE_NUMS_4
+always @(*) begin
+    case (core_id_i)
+        0: core_id_bin = 0;
+        1: core_id_bin = 1;
+        2: core_id_bin = 2;
+        3: core_id_bin = 3;
+        default: core_id_bin = 0;
+    endcase
+end
+`else
+always @(*) begin
+    case (core_id_i)
+        0: core_id_bin = 0;
+        1: core_id_bin = 1;
+        2: core_id_bin = 2;
+        3: core_id_bin = 3;
+        4: core_id_bin = 4;
+        5: core_id_bin = 5;
+        6: core_id_bin = 6;
+        7: core_id_bin = 7;
+        default: core_id_bin = 0;
+    endcase
+end
+`endif
 
 integer i;
 
 always @(*) begin
-    for (i = 0 ; i < N ; i = i + 1) begin
+    for (i = 0 ; i < CORE_NUMS ; i = i + 1) begin
         addr_h_match[i] = (reservation_addr[i][XLEN-1:5] == core_addr_i[XLEN-1:5]); // compare width depend on cache
         addr_l_match[i] = (reservation_addr[i][4:2] == core_addr_i[4:2]);
         rm_reservation[i] = (is_sc & !sc_fail);
@@ -148,7 +172,7 @@ always @(*) begin
 end
 
 always @(posedge clk_i ) begin
-    for (i = 0 ; i < N ; i = i + 1) begin
+    for (i = 0 ; i < CORE_NUMS ; i = i + 1) begin
         if (rst_i) begin
             reservation[i] <= 1'b0;
         end else if(core_done_o) begin
@@ -159,7 +183,7 @@ end
 
 always @(posedge clk_i ) begin
     if (rst_i)
-        for (i = 0 ; i < N ; i = i + 1)
+        for (i = 0 ; i < CORE_NUMS ; i = i + 1)
             reservation_addr[i] <= 0;
     else if (core_done_o & is_lr)
         reservation_addr[core_id_bin] <= core_addr_i[XLEN-1:2];

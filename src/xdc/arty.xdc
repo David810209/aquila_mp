@@ -6,8 +6,8 @@
 
 # Clock signal
 
-set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports { clk_i }]; #IO_L12P_T1_MRCC_35 Sch=gclk[100]
-#create_clock -name clk_i -period 10.000 -waveform {0.000 5.000} [get_ports clk_i];
+set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports { sys_clk_i }]; #IO_L12P_T1_MRCC_35 Sch=gclk[100]
+#create_clock -name sys_clk_i -period 10.000 -waveform {0.000 5.000} [get_ports sys_clk_i];
 #derive_pll_clocks
 #derive_clock_uncertainty
 #create_generated_clock -period 24.000 -waveform {0.000 12.000} -name clk -source [get_pins clk_wiz_0/clk_in1] [get_nets clk]
