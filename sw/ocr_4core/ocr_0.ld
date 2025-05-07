@@ -54,16 +54,23 @@
 // =============================================================================
 */
 
-__stack_size = 0x800;
-__heap_size  = 0xf0000;
+__stack_size = 0x50000;
+__heap_size  = 0x800000;
 
 MEMORY
 {
     code_ram         (rx!rw) : ORIGIN = 0x80001000, LENGTH = 0x10000
     rodata_ram       (rw!x)  : ORIGIN = 0x80011000, LENGTH = 0x30000
-    global_data_ram  (rw!x)  : ORIGIN = 0x80151000, LENGTH = 0x10000
-    heap_data_ram    (rw!x)  : ORIGIN = 0x80161000, LENGTH = 0x100000
-    private_data_ram (rw!x)  : ORIGIN = 0x80401000, LENGTH = 0x100000
+    global_data_ram  (rw!x)  : ORIGIN = 0x80041000, LENGTH = 0x10000
+    heap_data_ram    (rw!x)  : ORIGIN = 0x80051000, LENGTH = 0x800000
+    private_data_ram0 (rw!x)  : ORIGIN = 0x80851000, LENGTH = 0x50000
+    private_data_ram1 (rw!x)  : ORIGIN = 0x808A1000, LENGTH = 0x50000
+    private_data_ram2 (rw!x)  : ORIGIN = 0x808F1000, LENGTH = 0x50000
+    private_data_ram3 (rw!x)  : ORIGIN = 0x80941000, LENGTH = 0x50000
+    private_data_ram4 (rw!x)  : ORIGIN = 0x80991000, LENGTH = 0x50000
+    private_data_ram5 (rw!x)  : ORIGIN = 0x809E1000, LENGTH = 0x50000
+    private_data_ram6 (rw!x)  : ORIGIN = 0x80A31000, LENGTH = 0x50000
+    private_data_ram7 (rw!x)  : ORIGIN = 0x80A81000, LENGTH = 0x50000
 }
 
 ENTRY(crt0)
@@ -98,9 +105,51 @@ SECTIONS
         . += __heap_size;
     } > heap_data_ram :data
 
-    .stack : ALIGN(0x10)
-    {
-        . += __stack_size;
-        __stack_top = .;
-    } > private_data_ram :data
+        .stack0 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_0 = .;
+        } > private_data_ram0 :data
+
+        .stack1 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_1 = .;
+        } > private_data_ram1 :data
+
+        .stack2 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_2 = .;
+        } > private_data_ram2 :data
+
+        .stack3 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_3 = .;
+        } > private_data_ram3 :data
+
+        .stack4 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_4 = .;
+        } > private_data_ram4 :data
+
+        .stack5 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_5 = .;
+        } > private_data_ram5 :data
+
+        .stack6 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_6 = .;
+        } > private_data_ram6 :data
+
+        .stack7 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_7 = .;
+        } > private_data_ram7 :data
 }

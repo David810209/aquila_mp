@@ -78,6 +78,7 @@ localparam S_L2_Invalidate     = 4'd5; // invalidate L2
 localparam S_Wait              = 4'd6; // wait for L1 to be ready
 localparam S_Wait2             = 4'd7; // wait for L1 to be ready
 localparam S_Replacement_Delay = 4'd8; // write back to L2
+localparam S_Delay             = 4'd9;
 
 reg                         amo_S, amo_S_next;
 localparam                  amo_S_idle = 0, amo_S_busy = 1;
@@ -302,20 +303,21 @@ begin
         S_Wait2:  begin
             if(L1_has_response) begin
                 if(read_write[current_rw_core_id]) begin
-                    S_next = S_Idle;
+                    S_next = S_Delay;
                 end
                 else begin
                     S_next = S_WB_L2;
                 end
             end
-            else if(response_ready_L2) S_next = S_Idle;
+            else if(response_ready_L2) S_next = S_Delay;
             else S_next = S_Wait2;
         end
-        S_Invalidate: S_next = S_Idle;
+        S_Invalidate: S_next = S_Delay;
         S_Replacement_Delay: S_next = S_Replacement;
-        S_Replacement: S_next = (response_ready_L2) ? S_Idle : S_Replacement;
+        S_Replacement: S_next = (response_ready_L2) ? S_Delay : S_Replacement;
         S_WB_L2: S_next = (response_ready_L2) ? S_Idle : S_WB_L2;
         S_L2_Invalidate: S_next = S_Idle;
+        S_Delay: S_next = S_Idle;
         default: S_next = S_Idle;
     endcase
 end

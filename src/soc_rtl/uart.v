@@ -71,7 +71,7 @@
 // 2: baud rate msb   rw (not used)
 // 3: baud rate lsb   rw (not used)
 
-module uart #(parameter [15: 0] BAUD = 0)
+module uart #(parameter [15: 0] BAUD = 0, parameter CORE_NUMS_BITS = 2, parameter CORE_NUMS = 4) 
 (
     input              clk,   // clock
     input              rst,   // reset
@@ -89,7 +89,7 @@ module uart #(parameter [15: 0] BAUD = 0)
 
 // pragma translate_off
     , output simulation_done  // Signaling the end of simulation to the testbench.
-    , input  [ 1: 0] uart_core_sel // Start simulation.
+    , input  [ CORE_NUMS_BITS - 1: 0] uart_core_sel // Start simulation.
 // pragma translate_on
 );
 
@@ -242,20 +242,34 @@ end
 //========================================================
 // pragma translate_off
 integer      fd = 0, eof, ch_counter_0, ch_counter_1, ch_counter_2, ch_counter_3, idx, jdx;
+integer      ch_counter_4, ch_counter_5, ch_counter_6, ch_counter_7;
 reg [31 : 0] byte_idx_0;
 reg [31 : 0] byte_idx_1;
 reg [31 : 0] byte_idx_2;
 reg [31 : 0] byte_idx_3;
+reg [31:0] byte_idx_4;
+reg [31:0] byte_idx_5;
+reg [31:0] byte_idx_6;
+reg [31:0] byte_idx_7;
 reg [ 7 : 0] data_image_0 [0 : 256*1024];
 reg [ 7 : 0] data_image_1 [0 : 256*1024];
 reg [ 7 : 0] data_image_2 [0 : 256*1024];
 reg [ 7 : 0] data_image_3 [0 : 256*1024];
+reg [ 7 : 0] data_image_4 [0 : 256*1024];
+reg [ 7 : 0] data_image_5 [0 : 256*1024];
+reg [ 7 : 0] data_image_6 [0 : 256*1024];
+reg [ 7 : 0] data_image_7 [0 : 256*1024];
 always @(*) begin
     case(uart_core_sel)
         0: assign rxsim_data = data_image_0[byte_idx_0];
         1: assign rxsim_data = data_image_1[byte_idx_1];
         2: assign rxsim_data = data_image_2[byte_idx_2];
         3: assign rxsim_data = data_image_3[byte_idx_3];
+        4: assign rxsim_data = data_image_4[byte_idx_4];
+        5: assign rxsim_data = data_image_5[byte_idx_5];
+        6: assign rxsim_data = data_image_6[byte_idx_6];
+        7: assign rxsim_data = data_image_7[byte_idx_7];
+        default: assign rxsim_data = 8'b0;
     endcase
 end
 
@@ -337,6 +351,69 @@ begin
 
     // Close the file handle pointed to by "fd"
     $fclose(fd);
+    eof = 0;
+    ch_counter_4 = 0;
+    while (eof == 0) begin
+       data_image_4[ch_counter_4] = $fgetc(fd);
+       eof = $feof(fd);
+       ch_counter_4 = ch_counter_4 + 1;
+    end
+
+    $fclose(fd);
+
+    //************** ELF file for Core 5 **************//
+    fd = $fopen(`SIM_FNAME_5, "rb");
+    if (fd == 0)
+    begin
+        $display("Open file %s failed", `SIM_FNAME_5);
+        $stop();
+    end
+
+    eof = 0;
+    ch_counter_5 = 0;
+    while (eof == 0) begin
+       data_image_5[ch_counter_5] = $fgetc(fd);
+       eof = $feof(fd);
+       ch_counter_5 = ch_counter_5 + 1;
+    end
+
+    $fclose(fd);
+
+    //************** ELF file for Core 6 **************//
+    fd = $fopen(`SIM_FNAME_6, "rb");
+    if (fd == 0)
+    begin
+        $display("Open file %s failed", `SIM_FNAME_6);
+        $stop();
+    end
+
+    eof = 0;
+    ch_counter_6 = 0;
+    while (eof == 0) begin
+       data_image_6[ch_counter_6] = $fgetc(fd);
+       eof = $feof(fd);
+       ch_counter_6 = ch_counter_6 + 1;
+    end
+
+    $fclose(fd);
+
+    //************** ELF file for Core 7 **************//
+    fd = $fopen(`SIM_FNAME_7, "rb");
+    if (fd == 0)
+    begin
+        $display("Open file %s failed", `SIM_FNAME_7);
+        $stop();
+    end
+
+    eof = 0;
+    ch_counter_7 = 0;
+    while (eof == 0) begin
+       data_image_7[ch_counter_7] = $fgetc(fd);
+       eof = $feof(fd);
+       ch_counter_7 = ch_counter_7 + 1;
+    end
+
+    $fclose(fd);
 
 end
 
@@ -373,6 +450,42 @@ always @(posedge clk) begin
     else if (EN && !WR && (ADDR == 2'b00) && byte_idx_3 < ch_counter_3 && uart_core_sel==3)
     begin
         byte_idx_3 <= byte_idx_3 + 1;
+    end
+end
+
+always @(posedge clk) begin
+    if (rst)
+        byte_idx_4 <= 0;
+    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_4 < ch_counter_4 && uart_core_sel==4)
+    begin
+        byte_idx_4 <= byte_idx_4 + 1;
+    end
+end
+
+always @(posedge clk) begin
+    if (rst)
+        byte_idx_5 <= 0;
+    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_5 < ch_counter_5 && uart_core_sel==5)
+    begin
+        byte_idx_5 <= byte_idx_5 + 1;
+    end
+end
+
+always @(posedge clk) begin
+    if (rst)
+        byte_idx_6 <= 0;
+    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_6 < ch_counter_6 && uart_core_sel==6)
+    begin
+        byte_idx_6 <= byte_idx_6 + 1;
+    end
+end
+
+always @(posedge clk) begin
+    if (rst)
+        byte_idx_7 <= 0;
+    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_7 < ch_counter_7 && uart_core_sel==7)
+    begin
+        byte_idx_7 <= byte_idx_7 + 1;
     end
 end
 // pragma translate_on

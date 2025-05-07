@@ -134,10 +134,13 @@ localparam PROBE_Idle       = 0,
 // Cache parameters
 //=======================================================
 localparam N_WAYS      = 2;
+`define WAYS_2
+// `define WAYS_4 
+// `define WAYS_8
 localparam N_LINES     = (CACHE_SIZE*1024*8) / (N_WAYS*CLSIZE);
 
 localparam WAY_BITS    = $clog2(N_WAYS);
-localparam BYTE_BITS   = 2;
+localparam BYTE_BITS   = $clog2(XLEN/8);
 localparam WORD_BITS   = $clog2(CLSIZE/XLEN);
 localparam LINE_BITS   = $clog2(N_LINES);
 localparam NONTAG_BITS = LINE_BITS + WORD_BITS + BYTE_BITS;
@@ -382,11 +385,9 @@ assign probe_line_index  = (probe_strobe_r) ?  probe_addr_r[NONTAG_BITS - 1 : WO
 assign probe_tag     = (probe_strobe_r) ?  probe_addr_r[XLEN - 1 : NONTAG_BITS] : probe_addr_i[XLEN - 1 : NONTAG_BITS];
 
 // Check and see if any cache way has the matched memory block.
+`ifdef WAYS_2
 assign probe_way_hit[0] = (probe_valid_o[0] && (probe_tag_o[0] == probe_tag))? 1 : 0;
 assign probe_way_hit[1] = (probe_valid_o[1] && (probe_tag_o[1] == probe_tag))? 1 : 0;
-// assign probe_way_hit[2] = (probe_valid_o[2] && (probe_tag_o[2] == probe_tag))? 1 : 0;
-// assign probe_way_hit[3] = (probe_valid_o[3] && (probe_tag_o[3] == probe_tag))? 1 : 0;
-
 always @(*) begin
     case ( { probe_way_hit[0], probe_way_hit[1]} )
         2'b10: probe_hit_index = 0;
@@ -394,20 +395,53 @@ always @(*) begin
         default: probe_hit_index = 0; // error: multiple-way hit!
     endcase
 end
+`elsif WAYS_4
+assign probe_way_hit[0] = (probe_valid_o[0] && (probe_tag_o[0] == probe_tag))? 1 : 0;
+assign probe_way_hit[1] = (probe_valid_o[1] && (probe_tag_o[1] == probe_tag))? 1 : 0;
+assign probe_way_hit[2] = (probe_valid_o[2] && (probe_tag_o[2] == probe_tag))? 1 : 0;
+assign probe_way_hit[3] = (probe_valid_o[3] && (probe_tag_o[3] == probe_tag))? 1 : 0;
+always @(*) begin
+    case ( { probe_way_hit[0], probe_way_hit[1], probe_way_hit[2], probe_way_hit[3] } )
+        4'b1000: probe_hit_index = 0;
+        4'b0100: probe_hit_index = 1;
+        4'b0010: probe_hit_index = 2;
+        4'b0001: probe_hit_index = 3;
+        default: probe_hit_index = 0; // error: multiple-way hit!
+    endcase
+end
+`else //8 ways
+assign probe_way_hit[0] = (probe_valid_o[0] && (probe_tag_o[0] == probe_tag)) ? 1 : 0;
+assign probe_way_hit[1] = (probe_valid_o[1] && (probe_tag_o[1] == probe_tag)) ? 1 : 0;
+assign probe_way_hit[2] = (probe_valid_o[2] && (probe_tag_o[2] == probe_tag)) ? 1 : 0;
+assign probe_way_hit[3] = (probe_valid_o[3] && (probe_tag_o[3] == probe_tag)) ? 1 : 0;
+assign probe_way_hit[4] = (probe_valid_o[4] && (probe_tag_o[4] == probe_tag)) ? 1 : 0;
+assign probe_way_hit[5] = (probe_valid_o[5] && (probe_tag_o[5] == probe_tag)) ? 1 : 0;
+assign probe_way_hit[6] = (probe_valid_o[6] && (probe_tag_o[6] == probe_tag)) ? 1 : 0;
+assign probe_way_hit[7] = (probe_valid_o[7] && (probe_tag_o[7] == probe_tag)) ? 1 : 0;
+always @(*) begin
+    case ( { probe_way_hit[0], probe_way_hit[1], probe_way_hit[2], probe_way_hit[3], 
+              probe_way_hit[4], probe_way_hit[5], probe_way_hit[6], probe_way_hit[7] } )
+        8'b10000000: probe_hit_index = 0;
+        8'b01000000: probe_hit_index = 1;
+        8'b00100000: probe_hit_index = 2;
+        8'b00010000: probe_hit_index = 3;
+        8'b00001000: probe_hit_index = 4;
+        8'b00000100: probe_hit_index = 5;
+        8'b00000010: probe_hit_index = 6;
+        8'b00000001: probe_hit_index = 7;
+        default: probe_hit_index = 0; // error: multiple-way hit!
+    endcase
+end
+`endif
 
-// always @(*) begin
-//     case ( { probe_way_hit[0], probe_way_hit[1], probe_way_hit[2], probe_way_hit[3] } )
-//         4'b1000: probe_hit_index = 0;
-//         4'b0100: probe_hit_index = 1;
-//         4'b0010: probe_hit_index = 2;
-//         4'b0001: probe_hit_index = 3;
-//         default: probe_hit_index = 0; // error: multiple-way hit!
-//     endcase
-// end
-
-
+`ifdef WAYS_2
 assign probe_cache_hit  = (probe_way_hit[0] || probe_way_hit[1]);
-
+`elsif WAYS_4
+assign probe_cache_hit  = (probe_way_hit[0] || probe_way_hit[1] || probe_way_hit[2] || probe_way_hit[3]);
+`else //8 ways
+assign probe_cache_hit  = (probe_way_hit[0] || probe_way_hit[1] || probe_way_hit[2] || probe_way_hit[3] ||
+                      probe_way_hit[4] || probe_way_hit[5] || probe_way_hit[6] || probe_way_hit[7]);
+`endif
 
 // assign probe_cache_hit  = (probe_way_hit[0] || probe_way_hit[1] || probe_way_hit[2] || probe_way_hit[3]);
 
@@ -506,24 +540,11 @@ begin
 end
 
 // Check and see if any cache way has the matched memory block.
+`ifdef WAYS_2
 assign way_hit[0] = (c_valid_o[0] && (c_tag_o[0] == tag))? 1 : 0;
 assign way_hit[1] = (c_valid_o[1] && (c_tag_o[1] == tag))? 1 : 0;
-// assign way_hit[2] = (c_valid_o[2] && (c_tag_o[2] == tag))? 1 : 0;
-// assign way_hit[3] = (c_valid_o[3] && (c_tag_o[3] == tag))? 1 : 0;
 
-// assign cache_hit  = (way_hit[0] || way_hit[1] || way_hit[2] || way_hit[3]);
 assign cache_hit  = (way_hit[0] || way_hit[1]);
-
-// always @(*)
-// begin
-//     case ( { way_hit[0], way_hit[1], way_hit[2], way_hit[3] } )
-//         4'b1000: hit_index = 0;
-//         4'b0100: hit_index = 1;
-//         4'b0010: hit_index = 2;
-//         4'b0001: hit_index = 3;
-//         default: hit_index = 0; // error: multiple-way hit!
-//     endcase
-// end
 
 always @(*)
 begin
@@ -533,6 +554,53 @@ begin
         default: hit_index = 0; // error: multiple-way hit!
     endcase
 end
+`elsif WAYS_4
+assign way_hit[0] = (c_valid_o[0] && (c_tag_o[0] == tag))? 1 : 0;
+assign way_hit[1] = (c_valid_o[1] && (c_tag_o[1] == tag))? 1 : 0;
+assign way_hit[2] = (c_valid_o[2] && (c_tag_o[2] == tag))? 1 : 0;
+assign way_hit[3] = (c_valid_o[3] && (c_tag_o[3] == tag))? 1 : 0;
+
+assign cache_hit  = (way_hit[0] || way_hit[1] || way_hit[2] || way_hit[3]);
+
+always @(*)
+begin
+    case ( { way_hit[0], way_hit[1], way_hit[2], way_hit[3] } )
+        4'b1000: hit_index = 0;
+        4'b0100: hit_index = 1;
+        4'b0010: hit_index = 2;
+        4'b0001: hit_index = 3;
+        default: hit_index = 0; // error: multiple-way hit!
+    endcase
+end
+`else // WAYS_8
+assign way_hit[0] = (c_valid_o[0] && (c_tag_o[0] == tag))? 1 : 0;
+assign way_hit[1] = (c_valid_o[1] && (c_tag_o[1] == tag))? 1 : 0;
+assign way_hit[2] = (c_valid_o[2] && (c_tag_o[2] == tag))? 1 : 0;
+assign way_hit[3] = (c_valid_o[3] && (c_tag_o[3] == tag))? 1 : 0;
+assign way_hit[4] = (c_valid_o[4] && (c_tag_o[4] == tag))? 1 : 0;
+assign way_hit[5] = (c_valid_o[5] && (c_tag_o[5] == tag))? 1 : 0;
+assign way_hit[6] = (c_valid_o[6] && (c_tag_o[6] == tag))? 1 : 0;
+assign way_hit[7] = (c_valid_o[7] && (c_tag_o[7] == tag))? 1 : 0;
+
+assign cache_hit  = (way_hit[0] || way_hit[1] || way_hit[2] || way_hit[3] ||
+                     way_hit[4] || way_hit[5] || way_hit[6] || way_hit[7]);
+
+always @(*)
+begin
+    case ( { way_hit[0], way_hit[1], way_hit[2], way_hit[3], 
+             way_hit[4], way_hit[5], way_hit[6], way_hit[7] } )
+        8'b10000000: hit_index = 0;
+        8'b01000000: hit_index = 1;
+        8'b00100000: hit_index = 2;
+        8'b00010000: hit_index = 3;
+        8'b00001000: hit_index = 4;
+        8'b00000100: hit_index = 5;
+        8'b00000010: hit_index = 6;
+        8'b00000001: hit_index = 7;
+        default: hit_index = 0; // error: multiple-way hit!
+    endcase
+end
+`endif
 
 always @(posedge clk_i)
 begin

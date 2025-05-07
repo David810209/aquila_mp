@@ -450,7 +450,7 @@ assign M_dev_ready = (uart_sel)? uart_ready :
 
 wire simulation_finished;
 
-uart #(.BAUD(`SIM_CLK_RATE/`BAUD_RATE))
+uart #(.BAUD(`SIM_CLK_RATE/`BAUD_RATE), .CORE_NUMS(`CORE_NUMS), .CORE_NUMS_BITS(CORE_NUMS_BITS)) 
 UART(
     .clk(clk),
     .rst(rst),

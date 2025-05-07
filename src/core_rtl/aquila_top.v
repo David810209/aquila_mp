@@ -431,12 +431,8 @@ I_Cache(
     reg [3:0] S, S_next;
     localparam S_IDLE = 0, S_I = 1, S_D = 2;
     always @(posedge clk_i) begin
-        if(rst_i) begin
-            S <= S_IDLE;
-        end
-        else begin
-            S <= S_next;
-        end
+        if(rst_i)  S <= S_IDLE;
+        else S <= S_next;
     end
     always @(*) begin
         case (S)
@@ -456,8 +452,16 @@ I_Cache(
         endcase
     end
     // cache arbiter
-    always @(*)begin
-        if((S == S_I || S_next == S_I) && !CU_L1_response_ready_i) begin
+    always @(posedge clk_i)begin
+        if (rst_i) begin
+            L1_CU_strobe_o <= 0;
+            L1_CU_addr_o <= 0;
+            L1_CU_rw_o <= 0;
+            L1_CU_is_instr_fetch_o <= 0;
+            L1_CU_share_modify_o <= 0;
+            L1_CU_replacement_o <= 0;
+        end
+        else if(S_next == S_I) begin
             L1_CU_strobe_o <= 1;
             L1_CU_rw_o <= 0;
             L1_CU_addr_o <= I_CU_addr;
@@ -465,7 +469,7 @@ I_Cache(
             L1_CU_share_modify_o <= 0;
             L1_CU_replacement_o <= 0;
         end
-        else if((S == S_D || S_next == S_D) && !CU_L1_response_ready_i) begin
+        else if(S_next == S_D) begin
             L1_CU_strobe_o <= 1;
             L1_CU_rw_o <= D_CU_rw;
             L1_CU_addr_o <= D_CU_addr;

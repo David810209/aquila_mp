@@ -79,13 +79,7 @@ reg [DATA_WIDTH-1 : 0] RAM [N_ENTRIES-1 : 0];
 
 initial
 begin
-`ifdef CORE_NUMS_2
-    $readmemh("uartboot_2core.mem", RAM);
-`elsif CORE_NUMS_4
-    $readmemh("uartboot_4core.mem", RAM);
-`else
-    $readmemh("uartboot_8core.mem", RAM);
-`endif 
+    $readmemh("uartboot.mem", RAM);
 end
 
 // ------------------------------------

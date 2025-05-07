@@ -134,6 +134,7 @@ wire clk_200M;
 wire usr_reset;
 wire ui_clk, ui_rst;
 wire clk, rst;
+wire rst_mem_arb;
 
 // uart
 wire                uart_rx = 1; /* When the UART rx line is idle, it carries '1'. */
@@ -347,13 +348,21 @@ clk_wiz_0 Clock_Generator(
 //
 localparam SR_N = 5;
 reg [SR_N-1:0] rst_sr = {SR_N{1'b1}};
+reg [SR_N-1:0] rst_sr2 = {SR_N{1'b1}};
 assign rst = rst_sr[SR_N-1];
-
+assign rst_mem_arb = rst_sr2[SR_N-1];
 always @(posedge clk) begin
     if (usr_reset)
         rst_sr <= {SR_N{1'b1}};
     else
         rst_sr <= {rst_sr[SR_N-2 : 0], 1'b0};
+end
+
+always @(posedge ui_clk) begin
+    if (usr_reset)
+        rst_sr2 <= {SR_N{1'b1}};
+    else
+        rst_sr2 <= {rst_sr2[SR_N-2 : 0], 1'b0};
 end
 
 // -----------------------------------------------------------------------------
@@ -816,7 +825,7 @@ mem_arbiter Memory_Arbiter
 (
     // System signals
     .clk_i(ui_clk),
-    .rst_i(rst),
+    .rst_i(rst_mem_arb),
 
     // Aquila M_P0_CACHE master port interface signals
     .P0_MEM_strobe_i(MEM_strobe_ui_clk),

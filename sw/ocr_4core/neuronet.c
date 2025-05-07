@@ -187,11 +187,35 @@ int neuronet_eval(NeuroNet *nn, float *images, int hart_id, int img_idx)
     neuron_idx = nn->n_neurons[0];
     for (layer_idx = 1; layer_idx < nn->total_layers; layer_idx++){
         int total_size = nn->n_neurons[layer_idx];
+        // 10 / 8 = 1
+        // 2 
+        //0 - 1 2 - 3 4 - 5 6 -7 8-9
         int block_size = total_size / CORE_NUM;
-        if(total_size % CORE_NUM != 0) block_size++;
-
-        int start = block_size * hart_id;
-        int end = min((block_size) * (hart_id+1), total_size);
+        int remainder = total_size % CORE_NUM;
+        int start, end;
+        if(hart_id < remainder){
+            start = (block_size + 1) * hart_id;
+            end = start + block_size + 1;
+        }
+        else {
+            start = block_size * hart_id + remainder;
+            end = start + block_size;
+        }
+        // if(hart_id == 0) {
+        //     for(int x = 0;x < 8;x++){
+        //         int tmp_start;
+        //         int tmp_end ;
+        //         if(x < remainder){
+        //             tmp_start = (block_size + 1) * x;
+        //             tmp_end = tmp_start + block_size + 1;
+        //         }
+        //         else {
+        //             tmp_start = block_size * x + remainder;
+        //             tmp_end = tmp_start + block_size;
+        //         }
+        //         printf("hart:%d start = %d, end = %d\n",x, tmp_start, tmp_end);
+        //     }
+        // }
         for (idx = start; idx < end; idx++){
             // 'p_weight' points to the first forward weight of a layer.
             p_weight = nn->forward_weights[neuron_idx + idx];

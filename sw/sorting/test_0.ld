@@ -54,23 +54,23 @@
 // =============================================================================
 */
 
-__stack_size = 0x50000;
-__heap_size  = 0x800000;
+__stack_size = 0x200000;
+__heap_size  = 0xa00000;
 
 MEMORY
 {
     code_ram         (rx!rw) : ORIGIN = 0x80001000, LENGTH = 0x10000
     rodata_ram       (rw!x)  : ORIGIN = 0x80011000, LENGTH = 0x30000
     global_data_ram  (rw!x)  : ORIGIN = 0x80041000, LENGTH = 0x10000
-    heap_data_ram    (rw!x)  : ORIGIN = 0x80051000, LENGTH = 0x800000
-    private_data_ram0 (rw!x)  : ORIGIN = 0x80851000, LENGTH = 0x50000
-    private_data_ram1 (rw!x)  : ORIGIN = 0x808A1000, LENGTH = 0x50000
-    private_data_ram2 (rw!x)  : ORIGIN = 0x808F1000, LENGTH = 0x50000
-    private_data_ram3 (rw!x)  : ORIGIN = 0x80941000, LENGTH = 0x50000
-    private_data_ram4 (rw!x)  : ORIGIN = 0x80991000, LENGTH = 0x50000
-    private_data_ram5 (rw!x)  : ORIGIN = 0x809E1000, LENGTH = 0x50000
-    private_data_ram6 (rw!x)  : ORIGIN = 0x80A31000, LENGTH = 0x50000
-    private_data_ram7 (rw!x)  : ORIGIN = 0x80A81000, LENGTH = 0x50000
+    heap_data_ram    (rw!x)  : ORIGIN = 0x80051000, LENGTH = 0xa00000
+    private_data_ram0 (rw!x)  : ORIGIN = 0x80A51000, LENGTH = 0x200000
+    private_data_ram1 (rw!x)  : ORIGIN = 0x80C51000, LENGTH = 0x200000
+    private_data_ram2 (rw!x)  : ORIGIN = 0x80E51000, LENGTH = 0x200000
+    private_data_ram3 (rw!x)  : ORIGIN = 0x81051000, LENGTH = 0x200000
+    private_data_ram4 (rw!x)  : ORIGIN = 0x81251000, LENGTH = 0x200000
+    private_data_ram5 (rw!x)  : ORIGIN = 0x81451000, LENGTH = 0x200000
+    private_data_ram6 (rw!x)  : ORIGIN = 0x81651000, LENGTH = 0x200000
+    private_data_ram7 (rw!x)  : ORIGIN = 0x81851000, LENGTH = 0x200000
 }
 
 ENTRY(crt0)

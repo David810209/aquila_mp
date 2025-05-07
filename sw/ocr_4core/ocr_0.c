@@ -10,7 +10,7 @@
 int main() {
     int hart_id;
     asm volatile ("csrrs %0, mhartid, x0" :"=r"(hart_id): : );
-
+    if(hart_id >= CORE_NUM) while(1);
     if (hart_id == 0) {
         initialize();
         for(int i = 0;i < 100;i++){

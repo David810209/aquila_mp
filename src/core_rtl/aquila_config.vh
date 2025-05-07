@@ -129,19 +129,19 @@
 `endif
 
 // Numbers  of Cores
-`define CORE_NUMS 4
-// `define CORE_NUMS_2
-`define CORE_NUMS_4
-// `define CORE_NUMS_8
+`define CORE_NUMS 8
+//`define CORE_NUMS_2
+// `define CORE_NUMS_4
+ `define CORE_NUMS_8
 
 // Tightly-Coupled Memory Size
 `define TCM_SIZE_IN_WORDS 4096   // 16KB
 
 // DDRx memory is only accessible via cache controller
 `define ENABLE_DDRx_MEMORY
-`define ICACHE_SIZE 8  // Instruction cache size in KB
-`define DCACHE_SIZE 8  // Data cache size in KB
-`define L2CACHE_SIZE 64
+`define ICACHE_SIZE 16  // Instruction cache size in KB
+`define DCACHE_SIZE 16  // Data cache size in KB
+`define L2CACHE_SIZE 512
 
 // Branch Prediction
 `define ENABLE_BRANCH_PREDICTION
@@ -159,7 +159,12 @@
 `define Monitor 1
 
 // SIM_FNAME defines the RISC-V program path of an ELF file for simulation.
-`define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
-`define SIM_FNAME_1  "/home/zichen/zichen/aquila_mp/sw/test/test_1.elf"
-`define SIM_FNAME_2  "/home/zichen/zichen/aquila_mp/sw/test/test_2.elf"
-`define SIM_FNAME_3  "/home/zichen/zichen/aquila_mp/sw/test/test_3.elf"
+`define SIM_FNAME_0 "/home/henry7090/Downloads/aquila_quad/sw/sorting/test_0.elf"
+`define SIM_FNAME_1  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+`define SIM_FNAME_2  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+`define SIM_FNAME_3  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+
+`define SIM_FNAME_4 "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+`define SIM_FNAME_5  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+`define SIM_FNAME_6  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+`define SIM_FNAME_7  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"

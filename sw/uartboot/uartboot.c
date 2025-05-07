@@ -16,7 +16,11 @@
 //
 //  Oct/15/2022, by Chun-Jen Tsai
 //    Use different schemes for loading into TCM (on-the-fly) and into
-//    DRAM (buffered loading).
+//    DRAM (buffered loasding).
+//
+//  Aug/07/2024, by Chun-Jen Tsai
+//    Fix a bug in zero-initialization of .bss sections.
+//
 // -----------------------------------------------------------------------------
 //  License information:
 //
@@ -63,58 +67,6 @@
 #include <stdint.h>
 #include "io_uart.h"
 
-#define LOCK_0 0x1234
-#define LOCK_1 0x5678
-#define LOCK_2 0x9abc
-#define LOCK_3 0xdef0
-
-#define DONE_0 0x4321
-#define DONE_1 0x8765
-#define DONE_2 0xcba9
-#define DONE_3 0xfed0
-
-volatile unsigned int *prog_ready = (unsigned int *)0x80000000U;
-volatile unsigned int *print_lock = (unsigned int *)0x80000004U;  
-
-//for test code
-volatile unsigned int *print_lock2 = (unsigned int *)0x80000020U;
-volatile unsigned int *done_init = (unsigned int *)0x80000030U;  
-
-__attribute__((optimize("O0"))) static void acquire(void) {
-    asm volatile ("lui t0, %hi(print_lock)");
-    asm volatile ("lw t2, %lo(print_lock)(t0)");
-    asm volatile ("li t0, 1");
-    asm volatile ("again:");
-    asm volatile ("lw t1, (t2)"); // [t2] initial value is zero.
-    asm volatile ("bnez t1, again"); // if [t1] isn't zero , jumo to "again" 
-    asm volatile ("amoswap.w.aq t1, t0, (t2)");
-    asm volatile ("bnez t1, again");
-}
-
-__attribute__((optimize("O0"))) static void release(void) {
-    asm volatile ("lui t0, %hi(print_lock)");
-    asm volatile ("lw t2, %lo(print_lock)(t0)");
-    asm volatile ("amoswap.w.rl x0, x0, (t2)");
-}
-
-/*__attribute__((optimize("O0"))) void acquire(void) {
-    asm volatile ("lui t0, %hi(print_lock)");
-    asm volatile ("lw t2, %lo(print_lock)(t0)");
-    asm volatile ("li t0, 1"); 
-    asm volatile ("again:");
-    asm volatile ("lr.w t1, (t2)");
-    asm volatile ("bnez t1, again");
-    asm volatile ("sc.w t1, t0, (t2)");
-    asm volatile ("bnez t1, again");
-}
-
-__attribute__((optimize("O0"))) void release(void) {
-    asm volatile ("lui t0, %hi(print_lock)");
-    asm volatile ("lw t2, %lo(print_lock)(t0)");
-    asm volatile ("sw x0, (t2)");
-}*/
-
-
 int load_elf(Elf32_Ehdr *ehdr);
 
 // ------------------------------------------------------------------------------
@@ -125,242 +77,109 @@ int load_elf(Elf32_Ehdr *ehdr);
 //     0xF0000000 ~ 0xFFFFFFFF: system device area
 // ------------------------------------------------------------------------------
 
-uint8_t *prog_0, *prog_1, *prog_2, *prog_3;
+uint8_t *prog;
 uint8_t eheader[64], pheader[128];
 char    *organization = "EISL@NYCU, Hsinchu, Taiwan";
-int     year = 2023;
+int     year = 2024;
 
 int main(void)
 {
-    Elf32_Ehdr *ehdr = (Elf32_Ehdr *) eheader;
-    uint32_t *magic = (uint32_t *) ELFMAG;
-    uint32_t size, hsize = sizeof(Elf32_Ehdr);
-    int idx;
-    *prog_ready = 0;
     int hart_id;
     asm volatile ("csrrs %0, mhartid, x0" :"=r"(hart_id): : );
-    if (hart_id == 0) 
-    {   
-        *print_lock = 0;
-        printf("=======================================================================\n");
-        printf("Copyright (c) 2019-%d, %s.\n", year, organization);
-        printf("The Aquila SoC is ready.\n");
+    if (hart_id >= 1) while (1); // Only the first core is allowed to run.
+    Elf32_Ehdr *ehdr = (Elf32_Ehdr *) eheader;
+    uint32_t *magic = (uint32_t *) ELFMAG;
+    uint32_t size;
+    int idx;
+
+    printf("=======================================================================\n");
+    printf("Copyright (c) 2019-%d, %s.\n", year, organization);
+    printf("The Aquila SoC is ready.\n");
+    printf("Waiting for an ELF file to be sent from the UART ...\n");
+
+    // Read the ELF header.
+    for (idx = 0; idx < sizeof(Elf32_Ehdr); idx++)
+    {
+        eheader[idx] = inbyte();
+    }
+
+    // Read the Program headers.
+    for (idx = 0; idx < ehdr->e_phentsize*ehdr->e_phnum; idx++)
+    {
+        pheader[idx] = inbyte();
+    }
+
+    if (*((uint32_t *) ehdr->e_ident) == *magic)
+    {
+        prog = (uint8_t *) ehdr->e_entry; /* set program entry point */
+        size = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shnum);
+        load_elf(ehdr);
+
+        printf("\nProgram entry point at 0x%x, size = 0x%x.\n", prog, size);
         printf("-----------------------------------------------------------------------\n");
-        printf("Core %d is waiting for a program to be sent from the UART ...\n", hart_id);
 
-        for (idx = 0; idx < hsize; idx++)
-        {
-            eheader[idx] = inbyte();
-        }
-        if (*((uint32_t *) ehdr->e_ident) == *magic)
-        {
-            prog_0 = (uint8_t *) ehdr->e_entry; // set program entry point
-            size = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shnum);
-            load_elf(ehdr);
-            printf("[Aquila core %d] Load Done!\n", hart_id);          
-            printf("[Aquila core %d] Program entry point at 0x%x, size = 0x%x.\n", hart_id, prog_0, size);
-            printf("-----------------------------------------------------------------------\n");
-            *prog_ready = LOCK_0;
-            *done_init = 0;
-            *print_lock2 = 0;
-            while(*prog_ready != LOCK_3);
-            // Call the entry point for execution.
-            
-            asm volatile ("fence.i"); // force flushing of I/D caches.
-            asm volatile ("lui t0, %hi(prog_0)");
-            asm volatile ("lw ra, %lo(prog_0)(t0)");
-            asm volatile ("jalr ra, ra, 0");
-        }
-        else
-        {
-            printf("\n\ncore%d: Magic number = 0x%X\n",hart_id,  *((uint32_t *) ehdr->e_ident));
-            printf("Error! Not an ELF file.\n\n");
-        }
+        // Call the entry point for execution.
+        asm volatile ("fence.i"); // force flushing of I/D caches.
+        asm volatile ("lui t0, %hi(prog)");
+        asm volatile ("lw ra, %lo(prog)(t0)");
+        asm volatile ("jalr ra, ra, 0");
     }
-    else if (hart_id == 1)  {
-
-        while(*prog_ready != LOCK_0);
-        // printf("Core %d is waiting for a program to be sent from the UART ...\n", hart_id);
-        
-        // Read the ELF header.
-        for (idx = 0; idx < hsize; idx++)
-        {
-            eheader[idx] = inbyte();
-        }
-
-        if (*((uint32_t *) ehdr->e_ident) == *magic)
-        {
-            prog_1 = (uint8_t *) ehdr->e_entry; // set program entry point 
-            size = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shnum);
-            load_elf(ehdr);
-            printf("[Aquila core %d] Load Done!\n", hart_id);
-            printf("[Aquila core %d] Program entry point at 0x%x, size = 0x%x.\n", hart_id, prog_1, size);
-            printf("-----------------------------------------------------------------------\n");
-            *prog_ready = LOCK_1;
-            while(*prog_ready != LOCK_3);
-            // Call the entry point for execution.
-            asm volatile ("fence.i"); // force flushing of I/D caches.
-            asm volatile ("lui t0, %hi(prog_1)");
-            asm volatile ("lw ra, %lo(prog_1)(t0)");
-            asm volatile ("jalr ra, ra, 0");
-        }
-        else
-        {
-            printf("\n\ncore%d: Magic number = 0x%X\n",hart_id,  *((uint32_t *) ehdr->e_ident));
-            printf("Error! Not an ELF file.\n\n");
-        }
+    else
+    {
+        printf("\n\nMagic number = 0x%X\n", *((uint32_t *) ehdr->e_ident));
+        printf("Error! Not an ELF file.\n\n");
     }
 
-    else if (hart_id == 2)  {
-
-        while(*prog_ready != LOCK_1);
-        // printf("Core %d is waiting for a program to be sent from the UART ...\n", hart_id);
-        
-        // Read the ELF header.
-        for (idx = 0; idx < hsize; idx++)
-        {
-            eheader[idx] = inbyte();
-        }
-
-        if (*((uint32_t *) ehdr->e_ident) == *magic)
-        {
-            prog_2 = (uint8_t *) ehdr->e_entry; // set program entry point 
-            size = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shnum);
-            load_elf(ehdr);
-            printf("[Aquila core %d] Load Done!\n", hart_id);
-            printf("[Aquila core %d] Program entry point at 0x%x, size = 0x%x.\n", hart_id, prog_2, size);
-            printf("-----------------------------------------------------------------------\n");
-            *prog_ready = LOCK_2;
-            while(*prog_ready != LOCK_3);
-            // Call the entry point for execution.
-            asm volatile ("fence.i"); // force flushing of I/D caches.
-            asm volatile ("lui t0, %hi(prog_2)");
-            asm volatile ("lw ra, %lo(prog_2)(t0)");
-            asm volatile ("jalr ra, ra, 0");
-        }
-        else
-        {
-            printf("\n\ncore%d: Magic number = 0x%X\n",hart_id,  *((uint32_t *) ehdr->e_ident));
-            printf("Error! Not an ELF file.\n\n");
-        }
-    }
-     else if (hart_id == 3)  {
-
-        while(*prog_ready != LOCK_2);
-        // printf("Core %d is waiting for a program to be sent from the UART ...\n", hart_id);
-        
-        // Read the ELF header.
-        for (idx = 0; idx < hsize; idx++)
-        {
-            eheader[idx] = inbyte();
-        }
-
-        if (*((uint32_t *) ehdr->e_ident) == *magic)
-        {
-            prog_3 = (uint8_t *) ehdr->e_entry; // set program entry point 
-            size = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shnum);
-            load_elf(ehdr);
-            printf("[Aquila core %d] Load Done!\n", hart_id);
-            printf("[Aquila core %d] Program entry point at 0x%x, size = 0x%x.\n", hart_id, prog_3, size);
-            printf("-----------------------------------------------------------------------\n");
-            *prog_ready = LOCK_3;
-            // Call the entry point for execution.
-            asm volatile ("fence.i"); // force flushing of I/D caches.
-            asm volatile ("lui t0, %hi(prog_3)");
-            asm volatile ("lw ra, %lo(prog_3)(t0)");
-            asm volatile ("jalr ra, ra, 0");
-        }
-        else
-        {
-            printf("\n\ncore%d: Magic number = 0x%X\n",hart_id,  *((uint32_t *) ehdr->e_ident));
-            printf("Error! Not an ELF file.\n\n");
-        }
-    }
     // Halt the processor.
-    if(hart_id == 0) {
-        exit(0);
-    }
-    else {
-        while(1);
-    }
+    exit(0);
+
     return 0;
 }
 
+#define N_ZERO_SECS 8
+
 int load_elf(Elf32_Ehdr *ehdr)
 {
-    uint32_t hsize = sizeof(Elf32_Ehdr);
-    uint32_t phdr_size = ehdr->e_phentsize * ehdr->e_phnum;
-    uint32_t current_byte = hsize;
-    uint32_t skip;
-    uint8_t *dst_addr;
+    Elf32_Phdr *section;
+    uint32_t skip, current_byte;
+    uint8_t  *dst_addr;
     int idx, jdx;
-    int has_load = 0;
-    // 分配缓冲区来读取程序头
-    uint8_t phdr_buffer[phdr_size];
 
-    // 读取程序头到缓冲区
-    for (idx = 0; idx < phdr_size; idx++)
-    {
-        phdr_buffer[idx] = inbyte();
-        current_byte++;
-    }
+    // The info of sections to be initialized to zeros.
+    uint32_t *zmem[N_ZERO_SECS];  // Addresses of the sections.
+    int zsize[N_ZERO_SECS], zidx; // Sizes of the sectinos.
 
-    // 将缓冲区转换为 Elf32_Phdr 数组
-    Elf32_Phdr *phdr = (Elf32_Phdr *)phdr_buffer;
+    current_byte = sizeof(Elf32_Ehdr) + ehdr->e_phentsize*ehdr->e_phnum;
 
-    // 加载可执行段和数据段到目标地址
+    // Load all loadable sections of an ELF image to the destination.
+    zidx = 0;
+    section = (Elf32_Phdr *) pheader;
     for (idx = 0; idx < ehdr->e_phnum; idx++)
     {
-        if (phdr[idx].p_type == PT_LOAD)
+        // Locate CODE and DATA sections
+        if (section[idx].p_type == PT_LOAD && section[idx].p_filesz != 0)
         {
-            dst_addr = (uint8_t *)phdr[idx].p_paddr;
+            dst_addr = (uint8_t *) section[idx].p_paddr;
+            skip = section[idx].p_offset - current_byte;
+            while (skip-- > 0) inbyte(), current_byte++;
 
-            // 跳过未读取的字节
-            skip = phdr[idx].p_offset - current_byte;
-            while (skip-- > 0)
-            {
-                inbyte();
-                current_byte++;
-            }
-
-            // 从输入中读取段数据
-            for (jdx = 0; jdx < phdr[idx].p_filesz; jdx++)
+            for (jdx = 0; jdx < section[idx].p_filesz; jdx++)
             {
                 dst_addr[jdx] = inbyte();
                 current_byte++;
             }
 
-            // 如果 p_memsz > p_filesz，需要将剩余部分置零
-            for (; jdx < phdr[idx].p_memsz; jdx++)
-            {
-                dst_addr[jdx] = 0;
-            }
-
-            has_load++;
+            // Record the memory areas that need to be zero-initialized.
+            zmem[zidx] = (uint32_t *) &(dst_addr[jdx]);
+            zsize[zidx] = (section[idx].p_memsz - jdx)/sizeof(int);
+            if (++zidx >= N_ZERO_SECS) break;
         }
     }
-    printf("Load completed. Total segments loaded: %d\n", has_load);
-    // 读取剩余的字节，直到连续读取到 9 个 0xFF
-    int count = 0;
-    int times = 0;
-    while (1)
+
+    // Set the uninitialized memory areas to all zeros.
+    for (idx = 0; idx < zidx; idx++)
     {
-        uint8_t remain = inbyte();
-        times++;
-        if (remain == 0xFF)
-        {
-            count++;
-            if (count == 9)
-            {
-                printf("it takes %d times to read 9 0xFF\n", times);
-                break;
-            }
-        }
-        else
-        {
-            count = 0;
-        }
+        for (jdx = 0; jdx < zsize[idx]; jdx++) zmem[idx][jdx] = 0;
     }
-
     return 0;
 }

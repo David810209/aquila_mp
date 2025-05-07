@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#define N 128
-#define TIMES 1
-#define CORE_NUM 2
+#define N 64
+#define TIMES 100
+#define CORE_NUM 4
 volatile unsigned int *print_lock = (unsigned int *)0x80000020U;  
 
 __attribute__((optimize("O0"))) static void atomic_or(volatile unsigned int *addr, int val) {
@@ -53,6 +53,7 @@ void matrix_multiply(int core_id) {
 int main(){
     int hart_id;
     asm volatile ("csrrs %0, mhartid, x0" :"=r"(hart_id): : );
+    if(hart_id >= CORE_NUM) while(1);
     if (hart_id == 0) 
     {   
         clock_t  tick,ticks_per_msec = CLOCKS_PER_SEC/1000;

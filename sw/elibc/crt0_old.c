@@ -1,10 +1,10 @@
 // =============================================================================
-//  Program : time.h
+//  Program : crt0.c
 //  Author  : Chun-Jen Tsai
-//  Date    : Dec/09/2019
-// -----------------------------------------------------------------------------
-//  Description:
-//  This is the minimal time library for aquila.
+//  Date    : Jan/14/2020
+// =============================================================================
+//  This is the entry point of the application code. Must be located at
+//  the beginning of the text section in the linker script.
 // -----------------------------------------------------------------------------
 //  Revision information:
 //
@@ -51,16 +51,37 @@
 //  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 // =============================================================================
-#ifndef __TIME__H__
-#define __TIME__H__
-#include <stddef.h>
 
-#define CLOCKS_PER_SEC  1000000      /*         1 MHz */
-// #define CPU_FREQ_HZ    41666667      /* 41.666667 MHz */
-#define CPU_FREQ_HZ   50000000      /*       50 MHz */
-//#define CPU_FREQ_HZ   100000000      /*       100 MHz */
+#define SET_STACK_POINTER 1 // Set sp according to the linker script.
 
-typedef unsigned long clock_t;
+extern int main(void);
 
-clock_t clock(void);       /* returns # MHz clock ticks */
+#if SET_STACK_POINTER
+extern unsigned int __stack_top; /* declared in the linker script */
+unsigned int stack_top = (unsigned int) &__stack_top;
+unsigned int sp_store;
 #endif
+
+void crt0(void)
+{
+#if SET_STACK_POINTER
+    // We must save the return address to the boot loader before
+    // we assign the sp to __stack_top defined in the linker script.
+    asm volatile ("lui t0, %hi(sp_store)");
+    asm volatile ("sw sp, %lo(sp_store)(t0)");
+
+    // Set the stack pointer. The application linker script sets
+    // the top address of the stack area to __stack_top.
+    asm volatile("lui t0, %hi(stack_top)");
+    asm volatile("lw  sp, %lo(stack_top)(t0)");
+#endif
+
+    main();
+
+#if SET_STACK_POINTER
+    // Now, we must restore the stack pointer of the boot loader
+    // so that we can execute the epilogue of the boot loader properly.
+    asm volatile ("lui t0, %hi(sp_store)");
+    asm volatile ("lw sp, %lo(sp_store)(t0)");
+#endif
+}
