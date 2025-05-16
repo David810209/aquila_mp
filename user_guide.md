@@ -59,7 +59,7 @@
   1. Run `./build.sh`.
   2. Perform behavioral simulation.
 - **On FPGA**:
-  1. Adjust `N`.
+  1. Adjust `#define`.
   2. Run `./build.sh`.
   3. Execute `./send_elf.sh`.
 - **Test Cases**:

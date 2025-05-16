@@ -514,7 +514,7 @@ assign AMO_DMEM_rd_data  = (AMO_id == 0) ? AMO2C_rd_data[0] :
                            (AMO_id == 1) ? AMO2C_rd_data[1] :
                            (AMO_id == 2) ? AMO2C_rd_data[2] :
                            (AMO_id == 3) ? AMO2C_rd_data[3] : 'b0;
-`else  // 8 cores
+`elsif CORE_NUMS_8  // 8 cores
 assign AMO_DMEM_done     = (AMO_id == 0) ? AMO2C_done[0] :
                            (AMO_id == 1) ? AMO2C_done[1] :
                            (AMO_id == 2) ? AMO2C_done[2] :
@@ -532,6 +532,41 @@ assign AMO_DMEM_rd_data  = (AMO_id == 0) ? AMO2C_rd_data[0] :
                             (AMO_id == 5) ? AMO2C_rd_data[5] :
                             (AMO_id == 6) ? AMO2C_rd_data[6] :
                             (AMO_id == 7) ? AMO2C_rd_data[7] : 'b0; 
+`else // 16 cores
+assign AMO_DMEM_done     = (AMO_id == 0) ? AMO2C_done[0] :
+                           (AMO_id == 1) ? AMO2C_done[1] :
+                           (AMO_id == 2) ? AMO2C_done[2] :
+                           (AMO_id == 3) ? AMO2C_done[3] :
+                           (AMO_id == 4) ? AMO2C_done[4] :
+                           (AMO_id == 5) ? AMO2C_done[5] :
+                           (AMO_id == 6) ? AMO2C_done[6] :
+                           (AMO_id == 7) ? AMO2C_done[7] :
+                           (AMO_id == 8) ? AMO2C_done[8] :
+                           (AMO_id == 9) ? AMO2C_done[9] :
+                           (AMO_id == 10)? AMO2C_done[10]:
+                           (AMO_id == 11)? AMO2C_done[11]:
+                           (AMO_id == 12)? AMO2C_done[12]:
+                           (AMO_id == 13)? AMO2C_done[13]:
+                           (AMO_id == 14)? AMO2C_done[14]:
+                           (AMO_id == 15)? AMO2C_done[15]: 'b0;
+                           
+assign AMO_DMEM_rd_data  = (AMO_id == 0) ? AMO2C_rd_data[0] :
+                            (AMO_id == 1) ? AMO2C_rd_data[1] :
+                            (AMO_id == 2) ? AMO2C_rd_data[2] :
+                            (AMO_id == 3) ? AMO2C_rd_data[3] :
+                            (AMO_id == 4) ? AMO2C_rd_data[4] :
+                            (AMO_id == 5) ? AMO2C_rd_data[5] :
+                            (AMO_id == 6) ? AMO2C_rd_data[6] :
+                            (AMO_id == 7) ? AMO2C_rd_data[7] :
+                            (AMO_id == 8) ? AMO2C_rd_data[8] :
+                            (AMO_id == 9) ? AMO2C_rd_data[9] :
+                            (AMO_id == 10)? AMO2C_rd_data[10]:
+                            (AMO_id == 11)? AMO2C_rd_data[11]:
+                            (AMO_id == 12)? AMO2C_rd_data[12]:
+                            (AMO_id == 13)? AMO2C_rd_data[13]:
+                            (AMO_id == 14)? AMO2C_rd_data[14]:
+                            (AMO_id == 15)? AMO2C_rd_data[15]: 'b0;
+
 `endif
 // -----------------------------------------------------------------------------
 //  Device Arbiter.

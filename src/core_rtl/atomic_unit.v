@@ -145,7 +145,7 @@ always @(*) begin
         default: core_id_bin = 0;
     endcase
 end
-`else
+`elsif CORE_NUMS_8
 always @(*) begin
     case (core_id_i)
         0: core_id_bin = 0;
@@ -156,6 +156,28 @@ always @(*) begin
         5: core_id_bin = 5;
         6: core_id_bin = 6;
         7: core_id_bin = 7;
+        default: core_id_bin = 0;
+    endcase
+end
+`else // 16 cores
+always @(*) begin
+    case (core_id_i)
+        0: core_id_bin = 0;
+        1: core_id_bin = 1;
+        2: core_id_bin = 2;
+        3: core_id_bin = 3;
+        4: core_id_bin = 4;
+        5: core_id_bin = 5;
+        6: core_id_bin = 6;
+        7: core_id_bin = 7;
+        8: core_id_bin = 8;
+        9: core_id_bin = 9;
+        10: core_id_bin = 10;
+        11: core_id_bin = 11;
+        12: core_id_bin = 12;
+        13: core_id_bin = 13;
+        14: core_id_bin = 14;
+        15: core_id_bin = 15;
         default: core_id_bin = 0;
     endcase
 end

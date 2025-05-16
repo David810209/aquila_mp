@@ -1,0 +1,211 @@
+/*
+// =============================================================================
+//  Program : ocr.ld
+//  Author  : Chun-Jen Tsai
+//  Date    : Dec/06/2023
+// -----------------------------------------------------------------------------
+//  Revision information:
+//
+//  None.
+// -----------------------------------------------------------------------------
+//  Description:
+//  This is the linker script of a program compiled to run from DDRx memory.
+// -----------------------------------------------------------------------------
+//  License information:
+//
+//  This software is released under the BSD-3-Clause Licence,
+//  see https://opensource.org/licenses/BSD-3-Clause for details.
+//  In the following license statements, "software" refers to the
+//  "source code" of the complete hardware/software system.
+//
+//  Copyright 2019,
+//                    Embedded Intelligent Systems Lab (EISL)
+//                    Deparment of Computer Science
+//                    National Chiao Tung Uniersity
+//                    Hsinchu, Taiwan.
+//
+//  All rights reserved.
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are met:
+//
+//  1. Redistributions of source code must retain the above copyright notice,
+//     this list of conditions and the following disclaimer.
+//
+//  2. Redistributions in binary form must reproduce the above copyright notice,
+//     this list of conditions and the following disclaimer in the documentation
+//     and/or other materials provided with the distribution.
+//
+//  3. Neither the name of the copyright holder nor the names of its contributors
+//     may be used to endorse or promote products derived from this software
+//     without specific prior written permission.
+//
+//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//  POSSIBILITY OF SUCH DAMAGE.
+// =============================================================================
+*/
+
+__stack_size = 0x50000;
+__heap_size  = 0x800000;
+
+MEMORY
+{
+    code_ram         (rx!rw) : ORIGIN = 0x80001000, LENGTH = 0x10000
+    rodata_ram       (rw!x)  : ORIGIN = 0x80011000, LENGTH = 0x30000
+    global_data_ram  (rw!x)  : ORIGIN = 0x80041000, LENGTH = 0x10000
+    heap_data_ram    (rw!x)  : ORIGIN = 0x80051000, LENGTH = 0x800000
+    private_data_ram0 (rw!x)  : ORIGIN = 0x80851000, LENGTH = 0x50000
+    private_data_ram1 (rw!x)  : ORIGIN = 0x808A1000, LENGTH = 0x50000
+    private_data_ram2 (rw!x)  : ORIGIN = 0x808F1000, LENGTH = 0x50000
+    private_data_ram3 (rw!x)  : ORIGIN = 0x80941000, LENGTH = 0x50000
+    private_data_ram4 (rw!x)  : ORIGIN = 0x80991000, LENGTH = 0x50000
+    private_data_ram5 (rw!x)  : ORIGIN = 0x809E1000, LENGTH = 0x50000
+    private_data_ram6 (rw!x)  : ORIGIN = 0x80A31000, LENGTH = 0x50000
+    private_data_ram7 (rw!x)  : ORIGIN = 0x80A81000, LENGTH = 0x50000
+    private_data_ram8 (rw!x)  : ORIGIN = 0x80AD1000, LENGTH = 0x50000
+    private_data_ram9 (rw!x)  : ORIGIN = 0x80B21000, LENGTH = 0x50000
+    private_data_ram10 (rw!x) : ORIGIN = 0x80B71000, LENGTH = 0x50000
+    private_data_ram11 (rw!x) : ORIGIN = 0x80BC1000, LENGTH = 0x50000
+    private_data_ram12 (rw!x) : ORIGIN = 0x80C11000, LENGTH = 0x50000
+    private_data_ram13 (rw!x) : ORIGIN = 0x80C61000, LENGTH = 0x50000
+    private_data_ram14 (rw!x) : ORIGIN = 0x80CB1000, LENGTH = 0x50000
+    private_data_ram15 (rw!x) : ORIGIN = 0x80D01000, LENGTH = 0x50000
+}
+
+ENTRY(crt0)
+
+PHDRS
+{
+    text PT_LOAD FLAGS(5);
+    data PT_LOAD FLAGS(6);
+}
+
+SECTIONS
+{
+    .text :
+    {
+        *(.text*)
+    } > code_ram :text
+
+    .rodata :
+    {
+        *(.rodata*)
+    } > rodata_ram :text
+
+    .data :
+    {
+        *(.data)
+        *(.bss)
+    } > global_data_ram :data
+
+    .heap : ALIGN(0x10)
+    {
+        __heap_start = .;
+        . += __heap_size;
+    } > heap_data_ram :data
+
+        .stack0 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_0 = .;
+        } > private_data_ram0 :data
+
+        .stack1 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_1 = .;
+        } > private_data_ram1 :data
+
+        .stack2 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_2 = .;
+        } > private_data_ram2 :data
+
+        .stack3 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_3 = .;
+        } > private_data_ram3 :data
+
+        .stack4 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_4 = .;
+        } > private_data_ram4 :data
+
+        .stack5 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_5 = .;
+        } > private_data_ram5 :data
+
+        .stack6 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_6 = .;
+        } > private_data_ram6 :data
+
+        .stack7 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_7 = .;
+        } > private_data_ram7 :data
+
+        .stack8 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_8 = .;
+        } > private_data_ram8 :data
+
+        .stack9 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_9 = .;
+        } > private_data_ram9 :data
+
+        .stack10 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_10 = .;
+        } > private_data_ram10 :data
+
+        .stack11 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_11 = .;
+        } > private_data_ram11 :data
+
+        .stack12 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_12 = .;
+        } > private_data_ram12 :data
+
+        .stack13 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_13 = .;
+        } > private_data_ram13 :data
+
+        .stack14 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_14 = .;
+        } > private_data_ram14 :data
+
+        .stack15 : ALIGN(0x10)
+        {
+            . += __stack_size;
+            __stack_top_15 = .;
+        } > private_data_ram15 :data
+}

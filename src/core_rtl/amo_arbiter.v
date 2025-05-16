@@ -94,7 +94,15 @@ module amo_arbiter #(
                 P4_STROBE = 4,
                 P5_STROBE = 5,
                 P6_STROBE = 6,
-                P7_STROBE = 7;
+                P7_STROBE = 7,
+                P8_STROBE = 8,
+                P9_STROBE = 9,
+                P10_STROBE = 10,
+                P11_STROBE = 11,
+                P12_STROBE = 12,
+                P13_STROBE = 13,
+                P14_STROBE = 14,
+                P15_STROBE = 15;
 
     localparam M_IDLE   = 0, // wait for strobe
                M_CHOOSE = 1, // choose 
@@ -351,7 +359,7 @@ module amo_arbiter #(
                 sel_current <= P3_STROBE;
         end
     end
-`else // CORE_NUMS_8
+`elsif CORE_NUMS_8 // CORE_NUMS_8
     always @(posedge clk_i) begin
         if (rst_i) 
             sel_current <= 0;
@@ -372,6 +380,45 @@ module amo_arbiter #(
                 sel_current <= P6_STROBE;
             else if(P_strobe_r[7])
                 sel_current <= P7_STROBE;
+        end
+    end
+`else 
+    always @(posedge clk_i) begin
+        if (rst_i) 
+            sel_current <= 0;
+        else if(c_state == M_IDLE)begin
+            if(P_strobe_r[0])
+                sel_current <= P0_STROBE;
+            else if(P_strobe_r[1])
+                sel_current <= P1_STROBE;
+            else if(P_strobe_r[2])
+                sel_current <= P2_STROBE;
+            else if(P_strobe_r[3])
+                sel_current <= P3_STROBE;
+            else if(P_strobe_r[4])
+                sel_current <= P4_STROBE;
+            else if(P_strobe_r[5])
+                sel_current <= P5_STROBE;
+            else if(P_strobe_r[6])
+                sel_current <= P6_STROBE;
+            else if(P_strobe_r[7])
+                sel_current <= P7_STROBE;
+            else if(P_strobe_r[8])
+                sel_current <= P8_STROBE;
+            else if(P_strobe_r[9])
+                sel_current <= P9_STROBE;
+            else if(P_strobe_r[10])
+                sel_current <= P10_STROBE;
+            else if(P_strobe_r[11])
+                sel_current <= P11_STROBE;
+            else if(P_strobe_r[12])
+                sel_current <= P12_STROBE;
+            else if(P_strobe_r[13])
+                sel_current <= P13_STROBE;
+            else if(P_strobe_r[14])
+                sel_current <= P14_STROBE;
+            else if(P_strobe_r[15])
+                sel_current <= P15_STROBE;
         end
     end
 `endif
@@ -461,8 +508,13 @@ module amo_arbiter #(
     assign have_strobe = P_strobe_r[0] | P_strobe_r[1];
 `elsif CORE_NUMS_4
     assign have_strobe = P_strobe_r[0] | P_strobe_r[1] | P_strobe_r[2]| P_strobe_r[3];
-`else // CORE_NUMS_8
+`elsif CORE_NUMS_8 // CORE_NUMS_8
     assign have_strobe = P_strobe_r[0] | P_strobe_r[1] | P_strobe_r[2]| P_strobe_r[3] |
                          P_strobe_r[4] | P_strobe_r[5] | P_strobe_r[6]| P_strobe_r[7];
+`else
+    assign have_strobe = P_strobe_r[0] | P_strobe_r[1] | P_strobe_r[2]| P_strobe_r[3] |
+                         P_strobe_r[4] | P_strobe_r[5] | P_strobe_r[6]| P_strobe_r[7] |
+                         P_strobe_r[8] | P_strobe_r[9] | P_strobe_r[10]| P_strobe_r[11] |
+                         P_strobe_r[12]| P_strobe_r[13]| P_strobe_r[14]| P_strobe_r[15];
 `endif
 endmodule

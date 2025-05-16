@@ -17,7 +17,7 @@ Current features of the Aquila-Quad SoC include:
 - 16KB L1 data and instruction caches.
 - 64KB L2 cache shared among four cores.
 - Multi-core support with coherent data cache controller.
-- Can switch between 2, 4, and 8 cores using configurable parameters in the RTL design.
+- Can switch between 2, 4, 8, and 16 cores using configurable parameters in the RTL design.
 - CLINT for standard timer interrupts.
 - The RTL model written in Verilog.
 - SD card I/O support.

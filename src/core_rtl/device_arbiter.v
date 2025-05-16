@@ -37,7 +37,15 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS = `CORE_NUMS,pa
                 P4_STROBE = 4,
                 P5_STROBE = 5,
                 P6_STROBE = 6,
-                P7_STROBE = 7;
+                P7_STROBE = 7,
+                P8_STROBE = 8,
+                P9_STROBE = 9,
+                P10_STROBE = 10,
+                P11_STROBE = 11,
+                P12_STROBE = 12,
+                P13_STROBE = 13,
+                P14_STROBE = 14,
+                P15_STROBE = 15;
 
     localparam M_IDLE   = 0, // wait for strobe
                M_CHOOSE = 1, // choose 
@@ -243,7 +251,7 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS = `CORE_NUMS,pa
             end
         end
     end
-`else // CORE_NUMS_8
+`elsif CORE_NUMS_8 // CORE_NUMS_8
     always @(posedge clk_i) begin
         if (rst_i)  begin
             sel_current <= 0;
@@ -289,6 +297,95 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS = `CORE_NUMS,pa
                 sel_current <= P7_STROBE;
                 if(P_DEVICE_addr_r[7][XLEN-1:XLEN-8] == 8'hC0)
                     uart_core_sel_o <= 7;
+            end
+        end
+    end
+`else
+    always @(posedge clk_i) begin
+        if (rst_i)  begin
+            sel_current <= 0;
+            uart_core_sel_o <= 0;
+        end
+        else if(c_state == M_IDLE)begin
+            if(P_DEVICE_strobe_r[0]) begin
+                sel_current <= P0_STROBE;
+                if(P_DEVICE_addr_r[0][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 0;
+            end
+            else if(P_DEVICE_strobe_r[1]) begin
+                sel_current <= P1_STROBE;
+                if(P_DEVICE_addr_r[1][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 1;
+            end
+            else if(P_DEVICE_strobe_r[2]) begin
+                sel_current <= P2_STROBE;
+                if(P_DEVICE_addr_r[2][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 2;
+            end
+            else if(P_DEVICE_strobe_r[3]) begin
+                sel_current <= P3_STROBE;
+                if(P_DEVICE_addr_r[3][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 3;
+            end
+            else if(P_DEVICE_strobe_r[4]) begin
+                sel_current <= P4_STROBE;
+                if(P_DEVICE_addr_r[4][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 4;
+            end
+            else if(P_DEVICE_strobe_r[5]) begin
+                sel_current <= P5_STROBE;
+                if(P_DEVICE_addr_r[5][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 5;
+            end
+            else if(P_DEVICE_strobe_r[6]) begin
+                sel_current <= P6_STROBE;
+                if(P_DEVICE_addr_r[6][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 6;
+            end
+            else if(P_DEVICE_strobe_r[7]) begin
+                sel_current <= P7_STROBE;
+                if(P_DEVICE_addr_r[7][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 7;
+            end
+            else if(P_DEVICE_strobe_r[8]) begin
+                sel_current <= P8_STROBE;
+                if(P_DEVICE_addr_r[8][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 8;
+            end
+            else if(P_DEVICE_strobe_r[9]) begin
+                sel_current <= P9_STROBE;
+                if(P_DEVICE_addr_r[9][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 9;
+            end
+            else if(P_DEVICE_strobe_r[10]) begin
+                sel_current <= P10_STROBE;
+                if(P_DEVICE_addr_r[10][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 10;
+            end
+            else if(P_DEVICE_strobe_r[11]) begin
+                sel_current <= P11_STROBE;
+                if(P_DEVICE_addr_r[11][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 11;
+            end
+            else if(P_DEVICE_strobe_r[12]) begin
+                sel_current <= P12_STROBE;
+                if(P_DEVICE_addr_r[12][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 12;
+            end
+            else if(P_DEVICE_strobe_r[13]) begin
+                sel_current <= P13_STROBE;
+                if(P_DEVICE_addr_r[13][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 13;
+            end
+            else if(P_DEVICE_strobe_r[14]) begin
+                sel_current <= P14_STROBE;
+                if(P_DEVICE_addr_r[14][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 14;
+            end
+            else if(P_DEVICE_strobe_r[15]) begin
+                sel_current <= P15_STROBE;
+                if(P_DEVICE_addr_r[15][XLEN-1:XLEN-8] == 8'hC0)
+                    uart_core_sel_o <= 15;
             end
         end
     end
@@ -377,8 +474,13 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS = `CORE_NUMS,pa
     assign have_strobe = P_DEVICE_strobe_r[0] | P_DEVICE_strobe_r[1];
 `elsif CORE_NUMS_4
     assign have_strobe = P_DEVICE_strobe_r[0] | P_DEVICE_strobe_r[1] | P_DEVICE_strobe_r[2] | P_DEVICE_strobe_r[3];
-`else // CORE_NUMS_8
+`elsif CORE_NUMS_8 // CORE_NUMS_8
     assign have_strobe = P_DEVICE_strobe_r[0] | P_DEVICE_strobe_r[1] | P_DEVICE_strobe_r[2] | P_DEVICE_strobe_r[3] |
                          P_DEVICE_strobe_r[4] | P_DEVICE_strobe_r[5] | P_DEVICE_strobe_r[6] | P_DEVICE_strobe_r[7];
+`else
+    assign have_strobe = P_DEVICE_strobe_r[0] | P_DEVICE_strobe_r[1] | P_DEVICE_strobe_r[2] | P_DEVICE_strobe_r[3] |
+                         P_DEVICE_strobe_r[4] | P_DEVICE_strobe_r[5] | P_DEVICE_strobe_r[6] | P_DEVICE_strobe_r[7] |
+                         P_DEVICE_strobe_r[8] | P_DEVICE_strobe_r[9] | P_DEVICE_strobe_r[10] | P_DEVICE_strobe_r[11] |
+                         P_DEVICE_strobe_r[12] | P_DEVICE_strobe_r[13] | P_DEVICE_strobe_r[14] | P_DEVICE_strobe_r[15];
 `endif
 endmodule

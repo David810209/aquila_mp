@@ -206,7 +206,7 @@ assign L1_response_core_id = (response_data_ready[0]) ? 0 :
                              (response_data_ready[2]) ? 2 :
                              (response_data_ready[3]) ? 3 : 0;
 
-`else // CORE_NUMS_8
+`elsif CORE_NUMS_8 // CORE_NUMS_8
 always @(posedge clk_i) begin
     if(rst_i) current_wb_core_id <= 0;
     else if(S == S_Idle) begin
@@ -267,6 +267,107 @@ assign L1_response_core_id = (response_data_ready[0]) ? 0 :
                              (response_data_ready[5]) ? 5 :
                              (response_data_ready[6]) ? 6 :
                              (response_data_ready[7]) ? 7 : 0;
+
+`else
+    always @(posedge clk_i) begin
+    if(rst_i) current_wb_core_id <= 0;
+    else if(S == S_Idle) begin
+        if(any_wb[0]) current_wb_core_id <= 0;
+        else if(any_wb[1]) current_wb_core_id <= 1;
+        else if(any_wb[2]) current_wb_core_id <= 2;
+        else if(any_wb[3]) current_wb_core_id <= 3;
+        else if(any_wb[4]) current_wb_core_id <= 4;
+        else if(any_wb[5]) current_wb_core_id <= 5;
+        else if(any_wb[6]) current_wb_core_id <= 6;
+        else if(any_wb[7]) current_wb_core_id <= 7;
+        else if(any_wb[8]) current_wb_core_id <= 8;
+        else if(any_wb[9]) current_wb_core_id <= 9;
+        else if(any_wb[10]) current_wb_core_id <= 10;
+        else if(any_wb[11]) current_wb_core_id <= 11;
+        else if(any_wb[12]) current_wb_core_id <= 12;
+        else if(any_wb[13]) current_wb_core_id <= 13;
+        else if(any_wb[14]) current_wb_core_id <= 14;
+        else if(any_wb[15]) current_wb_core_id <= 15;
+        else current_wb_core_id <= 0;
+    end
+    else current_wb_core_id <= current_wb_core_id;
+end
+always @(posedge clk_i) begin
+    if(rst_i) current_invalidate_core_id <= 0;
+    else if(S == S_Idle) begin
+        if(any_invalidate[0]) current_invalidate_core_id <= 0;
+        else if(any_invalidate[1]) current_invalidate_core_id <= 1;
+        else if(any_invalidate[2]) current_invalidate_core_id <= 2;
+        else if(any_invalidate[3]) current_invalidate_core_id <= 3;
+        else if(any_invalidate[4]) current_invalidate_core_id <= 4;
+        else if(any_invalidate[5]) current_invalidate_core_id <= 5;
+        else if(any_invalidate[6]) current_invalidate_core_id <= 6;
+        else if(any_invalidate[7]) current_invalidate_core_id <= 7;
+        else if(any_invalidate[8]) current_invalidate_core_id <= 8;
+        else if(any_invalidate[9]) current_invalidate_core_id <= 9;
+        else if(any_invalidate[10]) current_invalidate_core_id <= 10;
+        else if(any_invalidate[11]) current_invalidate_core_id <= 11;
+        else if(any_invalidate[12]) current_invalidate_core_id <= 12;
+        else if(any_invalidate[13]) current_invalidate_core_id <= 13;
+        else if(any_invalidate[14]) current_invalidate_core_id <= 14;
+        else if(any_invalidate[15]) current_invalidate_core_id <= 15;
+        else current_invalidate_core_id <= 0;
+    end
+    else current_invalidate_core_id <= current_invalidate_core_id;
+end
+always @(posedge clk_i) begin
+    if(rst_i) current_rw_core_id <= 0;
+    else if(S == S_Idle) begin
+        if(any_rw[0]) current_rw_core_id <= 0;
+        else if(any_rw[1]) current_rw_core_id <= 1;
+        else if(any_rw[2]) current_rw_core_id <= 2;
+        else if(any_rw[3]) current_rw_core_id <= 3;
+        else if(any_rw[4]) current_rw_core_id <= 4;
+        else if(any_rw[5]) current_rw_core_id <= 5;
+        else if(any_rw[6]) current_rw_core_id <= 6;
+        else if(any_rw[7]) current_rw_core_id <= 7;
+        else if(any_rw[8]) current_rw_core_id <= 8;
+        else if(any_rw[9]) current_rw_core_id <= 9;
+        else if(any_rw[10]) current_rw_core_id <= 10;
+        else if(any_rw[11]) current_rw_core_id <= 11;
+        else if(any_rw[12]) current_rw_core_id <= 12;
+        else if(any_rw[13]) current_rw_core_id <= 13;
+        else if(any_rw[14]) current_rw_core_id <= 14;
+        else if(any_rw[15]) current_rw_core_id <= 15;
+        else current_rw_core_id <= 0;
+    end
+    else current_rw_core_id <= current_rw_core_id;
+end
+assign have_wb = any_wb[0] | any_wb[1] | any_wb[2] | any_wb[3] | any_wb[4] | any_wb[5] | any_wb[6] | any_wb[7] |
+                 any_wb[8] | any_wb[9] | any_wb[10] | any_wb[11] | any_wb[12] | any_wb[13] | any_wb[14] | any_wb[15];
+assign have_invalidate = any_invalidate[0] | any_invalidate[1] | any_invalidate[2] | any_invalidate[3] |
+                         any_invalidate[4] | any_invalidate[5] | any_invalidate[6] | any_invalidate[7] |
+                         any_invalidate[8] | any_invalidate[9] | any_invalidate[10] | any_invalidate[11] |
+                         any_invalidate[12] | any_invalidate[13] | any_invalidate[14] | any_invalidate[15];
+assign have_rw =    any_rw[0] | any_rw[1] | any_rw[2] | any_rw[3] | 
+                    any_rw[4] | any_rw[5] | any_rw[6] | any_rw[7] |
+                    any_rw[8] | any_rw[9] | any_rw[10] | any_rw[11] |
+                    any_rw[12] | any_rw[13] | any_rw[14] | any_rw[15];
+assign L1_has_response = any_response[0] | any_response[1] | any_response[2] | any_response[3] |
+                         any_response[4] | any_response[5] | any_response[6] | any_response[7] |
+                         any_response[8] | any_response[9] | any_response[10] | any_response[11] |
+                         any_response[12] | any_response[13] | any_response[14] | any_response[15];
+assign L1_response_core_id = (response_data_ready[0]) ? 0 :
+                             (response_data_ready[1]) ? 1 :
+                             (response_data_ready[2]) ? 2 :
+                             (response_data_ready[3]) ? 3 :
+                             (response_data_ready[4]) ? 4 :
+                             (response_data_ready[5]) ? 5 :
+                             (response_data_ready[6]) ? 6 :
+                             (response_data_ready[7]) ? 7 :
+                             (response_data_ready[8]) ? 8 :
+                             (response_data_ready[9]) ? 9 :
+                             (response_data_ready[10]) ? 10 :
+                             (response_data_ready[11]) ? 11 :
+                             (response_data_ready[12]) ? 12 :
+                             (response_data_ready[13]) ? 13 :
+                             (response_data_ready[14]) ? 14 :
+                             (response_data_ready[15]) ? 15 : 0;
 `endif
                         
 always @(posedge clk_i)
@@ -329,7 +430,7 @@ assign response_data_mux =  (response_data_ready[0]) ? response_data[0] :
                             (response_data_ready[1]) ? response_data[1] :
                             (response_data_ready[2]) ? response_data[2] :
                             (response_data_ready[3]) ? response_data[3] : 0;
-`else
+`elsif CORE_NUMS_8
 assign response_data_mux =  (response_data_ready[0]) ? response_data[0] :
                             (response_data_ready[1]) ? response_data[1] :
                             (response_data_ready[2]) ? response_data[2] :
@@ -338,6 +439,23 @@ assign response_data_mux =  (response_data_ready[0]) ? response_data[0] :
                             (response_data_ready[5]) ? response_data[5] :
                             (response_data_ready[6]) ? response_data[6] :
                             (response_data_ready[7]) ? response_data[7] : 0;
+`else
+assign response_data_mux =  (response_data_ready[0]) ? response_data[0] :
+                            (response_data_ready[1]) ? response_data[1] :
+                            (response_data_ready[2]) ? response_data[2] :
+                            (response_data_ready[3]) ? response_data[3] : 
+                            (response_data_ready[4]) ? response_data[4] :
+                            (response_data_ready[5]) ? response_data[5] :
+                            (response_data_ready[6]) ? response_data[6] :
+                            (response_data_ready[7]) ? response_data[7] :
+                            (response_data_ready[8]) ? response_data[8] :
+                            (response_data_ready[9]) ? response_data[9] :
+                            (response_data_ready[10]) ? response_data[10] :
+                            (response_data_ready[11]) ? response_data[11] :
+                            (response_data_ready[12]) ? response_data[12] :
+                            (response_data_ready[13]) ? response_data[13] :
+                            (response_data_ready[14]) ? response_data[14] :
+                            (response_data_ready[15]) ? response_data[15] : 0;
 `endif
 
 always @(posedge clk_i) begin

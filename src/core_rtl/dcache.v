@@ -1108,61 +1108,62 @@ generate
              );
     end
 endgenerate
-
+/*
 //profiler part
 // (* mark_debug = "true" *)  reg [35:0] S2S;
 // (* mark_debug = "true" *)  reg [35:0] M2M;
-// (* mark_debug = "true" *)  reg [31:0] I2M, I2E, I2S;
+(* mark_debug = "true" *)  reg [31:0] I2M, I2E, I2S;
 // (* mark_debug = "true" *)  reg [35:0] E2M, E2E;
 // (* mark_debug = "true" *)  reg [31:0] E2S;
 // (* mark_debug = "true" *)  reg [31:0] M2S, M2I, E2I, S2I;
-// (* mark_debug = "true" *)  reg [31:0] S2M;
-// (* mark_debug = "true" *)  reg [31:0] M_replaced , E_replaced, S_replaced;
-// always @(posedge clk_i) begin
-//     if (rst_i) begin
-//         // I2M <= 0;
-//         // I2E <= 0;
-//         M2M <= 0;
-//         // I2S <= 0;
-//        E2M <= 0;
-//        S2M <= 0;
-//        E2E <= 0;
-//        S2S <= 0;
-//         // M_replaced <= 0;
-//         // E_replaced <= 0;
-//         // S_replaced <= 0;
-//     end
-//     else begin
-//         if(S ==Analysis) begin
-//             if(cache_hit) begin
-//                 if(p_rw_r) begin
-//                    if(c_share_o[hit_index]) S2M <= S2M + 1;
-//                     else if(c_dirty_o[hit_index]) M2M <= M2M + 1;
-//                    else E2M <= E2M + 1;
-//                 end
-//                else begin
-//                    if(c_share_o[hit_index]) S2S <= S2S + 1;
-//                    else if(!c_dirty_o[hit_index])E2E <= E2E + 1;
-//                end
-//             end
-//             // if(!cache_hit && c_valid_o[victim_sel]) begin
-//             //     if(c_share_o[victim_sel]) S_replaced <= S_replaced + 1;
-//             //     else if(c_dirty_o[victim_sel]) M_replaced <= M_replaced + 1;
-//             //     else E_replaced <= E_replaced + 1;
-//             // end
-//         end
-//         // else if(S == RdfromMem && coherence_done_i) begin
-//         //     if(p_rw_r) begin
-//         //         I2M <= I2M + 1;
-//         //     end
-//         //     else begin
-//         //         if(make_exclusive_i) I2E <= I2E + 1;
-//         //         else I2S <= I2S + 1;
-//         //     end
-//         // end
-//     end 
-// end
-
+(* mark_debug = "true" *)  reg [31:0] S2M;
+(* mark_debug = "true" *)  reg [31:0] M_replaced , E_replaced;
+always @(posedge clk_i) begin
+    if (rst_i) begin
+        I2M <= 0;
+        I2E <= 0;
+        // M2M <= 0;
+        I2S <= 0;
+    //    E2M <= 0;
+        S2M <= 0;
+    //    E2E <= 0;
+    //    S2S <= 0;
+        M_replaced <= 0;
+        E_replaced <= 0;
+        // S_replaced <= 0;
+    end
+    else begin
+        if(S ==Analysis) begin
+            if(cache_hit) begin
+                if(p_rw_r) begin
+                   if(c_share_o[hit_index]) S2M <= S2M + 1;
+                //     else if(c_dirty_o[hit_index]) M2M <= M2M + 1;
+                //    else E2M <= E2M + 1;
+                end
+            //    else begin
+            //        if(c_share_o[hit_index]) S2S <= S2S + 1;
+            //        else if(!c_dirty_o[hit_index])E2E <= E2E + 1;
+            //    end
+            end
+            if(!cache_hit && c_valid_o[victim_sel]) begin
+                if(!c_share_o[victim_sel])begin
+                    if(c_dirty_o[victim_sel]) M_replaced <= M_replaced + 1;
+                    else E_replaced <= E_replaced + 1;
+                end
+            end
+        end
+        else if(S == RdfromMem && coherence_done_i) begin
+            if(p_rw_r) begin
+                I2M <= I2M + 1;
+            end
+            else begin
+                if(make_exclusive_i) I2E <= I2E + 1;
+                else I2S <= I2S + 1;
+            end
+        end
+    end 
+end
+*/
 // always @(posedge clk_i)begin
 //     if(rst_i) begin
 //         M2I <= 0;
@@ -1184,58 +1185,83 @@ endgenerate
 //        end
 // end
 
-// reg [15:0] curr_latency;
-// // reg miss_flag, write_share_flag;
-// reg replace_flag;
+reg [15:0] curr_latency, write_share_latency, relpace_latency;
+reg miss_flag, write_share_flag;
+reg replace_flag;
 
-// // (* mark_debug = "true" *)reg [63:0]  I2M_latency, I2E_latency, I2S_latency;
-// // (* mark_debug = "true" *)reg [31:0]  S2M_latency;
-// (* mark_debug = "true" *)reg [63:0]  M2replaced_latency, E2replaced_latency;
+(* mark_debug = "true" *)reg [55:0]  I2M_latency, I2E_latency, I2S_latency;
+(* mark_debug = "true" *)reg [31:0]  S2M_latency;
+(* mark_debug = "true" *)reg [55:0]  M2replaced_latency, E2replaced_latency;
+always @(posedge clk_i ) begin
+    if(rst_i) begin
+        I2M_latency <= 0;
+        I2E_latency <= 0;
+        I2S_latency <= 0;
+        miss_flag <= 0;
+    end
+    else begin
+        if(S_nxt == RdfromMem)  miss_flag <= 1;
+        else if(S == RdfromMem & coherence_done_i) begin
+            miss_flag <= 0;
+            if(p_rw_r) I2M_latency <= I2M_latency + curr_latency;
+            else if(make_exclusive_i) I2E_latency <= I2E_latency + curr_latency;
+            else I2S_latency <= I2S_latency + curr_latency;
+        end
+    end
+end
 
-// always @(posedge clk_i ) begin
-//     if(rst_i) begin
-//         // I2M_latency <= 0;
-//         // I2E_latency <= 0;
-//         // I2S_latency <= 0;
-//         // S2M_latency <= 0;
-//         M2replaced_latency <= 0;
-//         E2replaced_latency <= 0;
-//         // miss_flag <= 0;
-//         // write_share_flag <= 0;
-//         replace_flag <= 0;
-//     end
-//     else begin
-//         // if(S_nxt == RdfromMem)  miss_flag <= 1;
-//         // else if(S_nxt == WriteHitShare)  write_share_flag <= 1;
-//         if(S_nxt == WbtoMem) replace_flag <= 1;
-//         // else if(S == WriteHitShare & coherence_done_i) begin
-//         //     write_share_flag <= 0;
-//         //     S2M_latency <= S2M_latency + curr_latency;
-//         // end
-//         else if(S == WbtoMem & coherence_done_i) begin
-//             replace_flag <= 0;
-//             if(busy_flushing_o) begin
-//                 if(c_dirty_o[N_WAYS_cnt]) M2replaced_latency <= M2replaced_latency + curr_latency;
-//                 else E2replaced_latency <= E2replaced_latency + curr_latency;
-//             end
-//             else begin
-//                 if(c_dirty_o[victim_sel]) M2replaced_latency <= M2replaced_latency + curr_latency;
-//                 else E2replaced_latency <= E2replaced_latency + curr_latency;
-//             end
-//         end
-//         // else if(S == RdfromMem & coherence_done_i) begin
-//         //     miss_flag <= 0;
-//         //     if(p_rw_r) I2M_latency <= I2M_latency + curr_latency;
-//         //     else if(make_exclusive_i) I2E_latency <= I2E_latency + curr_latency;
-//         //     else I2S_latency <= I2S_latency + curr_latency;
-//         // end
-//     end
-// end
+always @(posedge clk_i ) begin
+    if(rst_i) begin
+        M2replaced_latency <= 0;
+        E2replaced_latency <= 0;
+        replace_flag <= 0;
+    end
+    else begin
+        if(S_nxt == WbtoMem) replace_flag <= 1;
+        else if(S == WbtoMem & coherence_done_i) begin
+            replace_flag <= 0;
+            if(busy_flushing_o) begin
+                if(c_dirty_o[N_WAYS_cnt]) M2replaced_latency <= M2replaced_latency + relpace_latency;
+                else E2replaced_latency <= E2replaced_latency + relpace_latency;
+            end
+            else begin
+                if(c_dirty_o[victim_sel]) M2replaced_latency <= M2replaced_latency + relpace_latency;
+                else E2replaced_latency <= E2replaced_latency + relpace_latency;
+            end
+        end
+    end
+end
 
-// always @(posedge clk_i ) begin
-//     if(rst_i) curr_latency <= 0;
-//     else if(replace_flag) curr_latency <= curr_latency + 1;
-//     else curr_latency <= 0;
-// end
+always @(posedge clk_i ) begin
+    if(rst_i) begin
+        S2M_latency <= 0;
+        write_share_flag <= 0;
+    end
+    else begin
+        if(S_nxt == WriteHitShare)  write_share_flag <= 1;
+        else if(S == WriteHitShare & coherence_done_i) begin
+            write_share_flag <= 0;
+            S2M_latency <= S2M_latency + write_share_latency;
+        end
+    end
+end
+
+always @(posedge clk_i ) begin
+    if(rst_i) curr_latency <= 0;
+    else if(miss_flag ) curr_latency <= curr_latency + 1;
+    else curr_latency <= 0;
+end
+
+always @(posedge clk_i ) begin
+    if(rst_i) write_share_latency <= 0;
+    else if(write_share_flag ) write_share_latency <= write_share_latency + 1;
+    else write_share_latency <= 0;
+end
+
+always @(posedge clk_i ) begin
+    if(rst_i) relpace_latency <= 0;
+    else if(replace_flag ) relpace_latency <= relpace_latency + 1;
+    else relpace_latency <= 0;
+end
 
 endmodule
