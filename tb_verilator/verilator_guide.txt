@@ -1,0 +1,14 @@
+verilator測試方法：
+要先到aquila_config.vh 58行，`define ARTY（或是`define QMCORE)，不然會錯誤。
+接著：
+
+make core_verilate
+cd core_obj_dir
+./Vaquila_testharness  ../../../sw/rtos_run.elf 
+
+(../../../sw/rtos_run.elf要換成真正elf檔案位置)
+
+然後
+gtkwave aquila_core.fst 
+
+進去之後可以開tb_verilator/test.gtkw，有存一些常用信號。

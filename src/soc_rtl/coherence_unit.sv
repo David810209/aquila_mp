@@ -67,7 +67,7 @@ wire [CORE_NUMS_BITS-1:0]   L1_response_core_id;
 reg [XLEN-1 : 0]            wb_addr_r;
 reg [CLSIZE - 1 :0]         wb_data_r;
 
-reg [3:0]                   S, S_next;
+(* mark_debug = "true" *) reg [3:0]                   S, S_next;
 
 localparam S_Idle              = 4'd0;
 localparam S_Miss              = 4'd1; // rw miss

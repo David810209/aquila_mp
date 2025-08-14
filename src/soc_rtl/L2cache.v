@@ -76,7 +76,7 @@ module L2cache
 
     /////////// cache coherence unit signal //////////////////////////////////////////////
     //write back to L2
-    input                     wb_i,          // write back signal
+    (* mark_debug = "true" *) input                     wb_i,          // write back signal
     input                     wb_replacement_i,     // write back address
     input  [CLSIZE-1 : 0]     wb_data_i,     // write back data
     // request L2 cache
@@ -124,7 +124,7 @@ wire                   way_hit[0 : N_WAYS-1];     // Cache-way hit flag.
 wire                   way_wb_hit[0 : N_WAYS-1];
 wire                   EorM_hit[0 : N_WAYS-1];
 reg  [WAY_BITS-1 : 0]  hit_index;                 // Decoded way_hit[] signal.
-wire                   cache_hit;                 // Got a cache hit?
+(* mark_debug = "true" *) wire                   cache_hit;                 // Got a cache hit?
 reg  [CLSIZE-1 : 0]    c_data_i;                  // Data to write into cache.
 wire [CLSIZE-1 : 0]    c_block[0 : N_WAYS-1];     // Cache blocks from N cache way.
 wire [CLSIZE-1 : 0]    c_data_hit;                // Data from the hit cache block.
@@ -293,7 +293,7 @@ assign invalidate_L1_o = S_nxt == Invalidate_L1;
 
 // a signal to indicate EorM miss and victim is clean when L1 write back to L2
 // wire Wb_Miss_Clean = S == Analysis && !cache_hit && !c_valid_o[victim_sel]   && wb_i;
-wire Wb_Miss_Clean = S == Analysis && !cache_hit && !(c_valid_o[victim_sel] && (c_dirty_o[victim_sel]))  && wb_i;
+(* mark_debug = "true" *)  wire Wb_Miss_Clean = S == Analysis && !cache_hit && !(c_valid_o[victim_sel] && (c_dirty_o[victim_sel]))  && wb_i;
 // Check and see if any cache way has the matched memory block.
 
 assign EorM_hit[0] = ((c_tag_o[0] == tag) && (c_share_o[0] == 1) && (c_valid_o[0] == 0));
@@ -301,7 +301,7 @@ assign EorM_hit[1] = ((c_tag_o[1] == tag) && (c_share_o[1] == 1) && (c_valid_o[1
 assign EorM_hit[2] = ((c_tag_o[2] == tag) && (c_share_o[2] == 1) && (c_valid_o[2] == 0));
 assign EorM_hit[3] = ((c_tag_o[3] == tag) && (c_share_o[3] == 1) && (c_valid_o[3] == 0));
 
-wire EorM_hit_all = (EorM_hit[0] || EorM_hit[1] || EorM_hit[2] || EorM_hit[3]);
+(* mark_debug = "true" *) wire EorM_hit_all = (EorM_hit[0] || EorM_hit[1] || EorM_hit[2] || EorM_hit[3]);
 
 assign way_wb_hit[0] = ((c_tag_o[0] == tag) && wb_i && (c_share_o[0] == 1) && (c_valid_o[0] == 0));
 assign way_wb_hit[1] = ((c_tag_o[1] == tag) && wb_i && (c_share_o[1] == 1) && (c_valid_o[1] == 0));
@@ -355,7 +355,10 @@ end
 // cache miss and git data from memory done
 // write back done
 assign response_ready_o = (S == Analysis && cache_hit && !invalidate_r) || (m_ready_i && ((S == RdfromMem) || (S == WbtoMem && wb_i)) )
-                         || Wb_Miss_Clean;
+                         || Wb_Miss_Clean ;
+// assign response_ready_o = (S == Analysis && cache_hit && !invalidate_r) || (m_ready_i && ((S == RdfromMem) || (S == WbtoMem && wb_i)) )
+//                          || Wb_Miss_Clean||
+//                           (S == Analysis && EorM_hit_all);
 
 //======================================================================
 // Create a single-cycle memory request pluse for the memory controller

@@ -17,7 +17,7 @@ if { $vmajor > 2020 } {
 set origin_dir "."
 
 # Set the project name
-set proj_name "aquila_quad"
+set proj_name "aquila_mp"
 
 # Create project
 create_project ${proj_name} ${origin_dir}/${proj_name} -part xc7a100tcsg324-1
@@ -41,7 +41,7 @@ set common_files [list \
   [file normalize "$origin_dir/src/core_rtl/alu.v" ]\
   [file normalize "$origin_dir/src/core_rtl/aquila_config.vh" ]\
   [file normalize "$origin_dir/src/core_rtl/aquila_top.v" ]\
-  [file normalize "$origin_dir/src/core_rtl/amo_arbiter.v" ]\
+  [file normalize "$origin_dir/src/core_rtl/amo_arbiter.sv" ]\
   [file normalize "$origin_dir/src/core_rtl/atomic_unit.v" ]\
   [file normalize "$origin_dir/src/core_rtl/bcu.v" ]\
   [file normalize "$origin_dir/src/core_rtl/bpu.v" ]\
@@ -51,7 +51,7 @@ set common_files [list \
   [file normalize "$origin_dir/src/core_rtl/csr_file.v" ]\
   [file normalize "$origin_dir/src/core_rtl/dcache.v" ]\
   [file normalize "$origin_dir/src/core_rtl/decode.v" ]\
-  [file normalize "$origin_dir/src/core_rtl/device_arbiter.v" ]\
+  [file normalize "$origin_dir/src/core_rtl/device_arbiter.sv" ]\
   [file normalize "$origin_dir/src/core_rtl/distri_ram.v" ]\
   [file normalize "$origin_dir/src/core_rtl/distri_ram_dp.v" ]\
   [file normalize "$origin_dir/src/core_rtl/execute.v" ]\
@@ -67,8 +67,8 @@ set common_files [list \
   [file normalize "$origin_dir/src/core_rtl/sram_dp.v" ]\
   [file normalize "$origin_dir/src/core_rtl/writeback.v" ]\
   [file normalize "$origin_dir/src/soc_rtl/uart.v" ]\
-  [file normalize "$origin_dir/src/soc_rtl/Coherence_Unit.v" ]\
-  [file normalize "$origin_dir/src/soc_rtl/core2axi_if.v"]\
+  [file normalize "$origin_dir/src/soc_rtl/coherence_unit.sv" ]\
+  [file normalize "$origin_dir/src/soc_rtl/core2axi_if.v" ]\
   [file normalize "$origin_dir/src/soc_rtl/cdc_sync.v" ]\
   [file normalize "$origin_dir/src/soc_rtl/L2cache.v" ]\
   [file normalize "$origin_dir/src/soc_rtl/mem_arbiter.v" ]\
@@ -76,10 +76,11 @@ set common_files [list \
 ]
 
 set synth_files [list \
- [file normalize "$origin_dir/src/soc_rtl/soc_top.v" ]\
+ [file normalize "$origin_dir/src/soc_rtl/soc_top.sv" ]\
 ]
 
 set imported_files [import_files -fileset sources_1 $synth_files $common_files ]
+
 # Define the target board to "ARTY" for synthesis
 set_property verilog_define [list ARTY] [get_filesets sources_1]
 
@@ -113,7 +114,7 @@ if {[string equal [get_filesets -quiet sim_1] ""]} {
 # Set 'sim_1' fileset object
 # Import local simulation files
 set sim_files [list \
- [file normalize "$origin_dir/src/soc_rtl/soc_tb.v" ]\
+ [file normalize "$origin_dir/src/soc_rtl/soc_tb.sv" ]\
  [file normalize "$origin_dir/src/soc_rtl/mig_7series_sim.v" ]\
 ]
 set imported_files [import_files -fileset sim_1 $sim_files]
@@ -124,9 +125,6 @@ set_property verilog_define [list ARTY] [get_filesets sim_1]
 set obj [get_filesets sim_1]
 set_property -name "top" -value "soc_tb" -objects $obj
 set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
-
-
-
 
 # Adding an Asynchronous FIFO Addr IP
 create_ip -name fifo_generator -vendor xilinx.com -library ip -module_name async_fifo_addr
@@ -185,8 +183,6 @@ set_property -dict [ list \
    CONFIG.C_USE_STARTUP_INT {0} \
    CONFIG.QSPI_BOARD_INTERFACE {custom}] [get_ips axi_quad_spi_0]
 generate_target all [get_files ${proj_name}/${proj_name}.srcs/sources_1/ip/axi_quad_spi_0/axi_quad_spi_0.xci]
-#update_compile_order -fileset sources_1
-#set_property IS_ENABLED 0 [get_files ${proj_name}/${proj_name}.${gen_srcs}/sources_1/ip/axi_quad_spi_0/axi_quad_spi_0_board.xdc]
 
 # Adding an MIG IP
 create_ip -name mig_7series -vendor xilinx.com -library ip -module_name mig_7series_0
@@ -196,4 +192,3 @@ generate_target {instantiation_template} [get_files ${proj_name}/${proj_name}.sr
 generate_target all [get_files ${proj_name}/${proj_name}.srcs/sources_1/ip/mig_7series_0/mig_7series_0.xci]
 
 puts "INFO: Project created:${proj_name}"
-

@@ -81,7 +81,7 @@ module dcache
     input  [XLEN-1 : 0]       p_addr_i,        // Memory addr of the request.
     input  [XLEN-1 : 0]       p_data_i,        // Data to main memory.
     output reg [XLEN-1 : 0]   p_data_o,        // Data from main memory.
-    output                    p_ready_o,       // The cache data is ready.
+    (* mark_debug = "true" *) output                    p_ready_o,       // The cache data is ready.
     input                     p_flush_i,       // Cache flush request.,
     output     reg            busy_flushing_o, // Cache is flushing.
     input                     p_is_amo_i,      // AMO request from core.
@@ -91,7 +91,7 @@ module dcache
     input                     invalidate_i,          
     input  [XLEN-1 : 0]       probe_addr_i,  
     input  [CLSIZE-1 : 0]     coherence_data_i,
-    input                     coherence_done_i, 
+    (* mark_debug = "true" *) input                     coherence_done_i, 
     input                     make_exclusive_i,
     input                     probe_is_amo_i,   
 
@@ -121,10 +121,11 @@ localparam Init             = 0,
            RdfromMem        = 5,
            WbtoMemAll       = 7,
            WbtoMemAllFinish = 8,
-           WaitForAmo       = 9;
+           WaitForAmo       = 9,
+           Delay           = 10;
 
 // Cache controller state registers
-reg [ 3 : 0] S, S_nxt;
+(* mark_debug = "true" *) reg [ 3 : 0] S, S_nxt;
 
 reg  [ 1 : 0]          PROBE_S, PROBE_S_nxt;
 
@@ -191,6 +192,8 @@ wire NeedtoWb = c_valid_o[N_WAYS_cnt] && !c_share_o[N_WAYS_cnt];
 wire WbAllFinish = (N_LINES_cnt == N_LINES - 1 && N_WAYS_cnt == N_WAYS - 1);
 reg WbAllFinish_r;
 wire probe_on_wb_line;
+wire probe_on_share_modify_line;
+wire probe_on_curr_line;
 //=======================================================
 // Cache Coherence through Broadcast
 //=======================================================
@@ -285,6 +288,9 @@ begin
             else
                 S_nxt = Idle;
         Analysis:
+        if(probe_on_curr_line) begin
+            S_nxt = Delay;
+        end else begin
             if (busy_flushing_o)
                 S_nxt = WbtoMemAll;
             else if (!cache_hit)
@@ -296,9 +302,13 @@ begin
             // hit on other state (silent)
             else
                 S_nxt = Idle;
+        end
         WriteHitShare:
-            if(coherence_done_i) S_nxt = Idle;
+            if(probe_on_share_modify_line) S_nxt = Delay;
+            else if(coherence_done_i) S_nxt = Idle;
             else S_nxt = WriteHitShare;
+        Delay:
+            S_nxt = Idle;
         WbtoMem:
         // wb to L2 cache finish -> Broadcasts
             if(probe_on_wb_line) S_nxt = RdfromMem;
@@ -452,6 +462,13 @@ assign response_ready_o = (PROBE_S == PROBE_Analysis && probe_cache_hit && !prob
 
 assign probe_on_wb_line = (response_ready_o && S == WbtoMem 
                             && {c_tag_o[victim_sel], line_index, {WORD_BITS{1'b0}}, 2'b0} == {probe_tag, probe_line_index, {WORD_BITS{1'b0}}, 2'b0});
+
+assign probe_on_curr_line = PROBE_S == PROBE_Analysis && probe_cache_hit && invalidate_r && {p_addr_r[XLEN-1 : WORD_BITS+2], {WORD_BITS{1'b0}}, 2'b0} == {probe_tag, probe_line_index, {WORD_BITS{1'b0}}, 2'b0};
+
+assign probe_on_share_modify_line = probe_on_curr_line && probe_shared && S == WriteHitShare;
+
+// assign probe_on_share_modify_line = (PROBE_S == PROBE_Analysis && probe_cache_hit && probe_shared && invalidate_r) && S == WriteHitShare
+//                             && {p_addr_r[XLEN-1 : WORD_BITS+2], {WORD_BITS{1'b0}}, 2'b0} == {probe_tag, probe_line_index, {WORD_BITS{1'b0}}, 2'b0};
 
 // register invalidate signal
 always @(posedge clk_i)
@@ -703,7 +720,7 @@ end
 // Output signals   ////////////////////////////////////////////////////////////
 always @(*)
 begin // Note: p_data_o is significant when processor read data
-    if ( (S == Analysis) && cache_hit && !p_rw_r)
+    if ( (S == Analysis && !probe_on_curr_line) && cache_hit && !p_rw_r)
         p_data_o = fromCache;
     else if ((S == RdfromMem && coherence_done_i) && !p_rw_r)
         p_data_o = fromMem;
@@ -711,7 +728,7 @@ begin // Note: p_data_o is significant when processor read data
         p_data_o = {XLEN{1'b0}};
 end
 
-assign p_ready_o = ((S == Analysis) && cache_hit && !busy_flushing_o && (!p_rw_r || !c_share_o[hit_index])) ||
+assign p_ready_o = ((S == Analysis && !probe_on_curr_line) && cache_hit && !busy_flushing_o && (!p_rw_r || !c_share_o[hit_index])) ||
                     (S == RdfromMem && coherence_done_i) || (S == WriteHitShare && coherence_done_i);
 
 //======================================================================
@@ -857,7 +874,7 @@ begin
     if (!p_rw_r) // Processor read miss and update cache data
         c_data_i = (S == RdfromMem && coherence_done_i) ? coherence_data_i : {CLSIZE{1'b0}}; // read/write miss
     else begin   // Processor write cache
-        if ( (S == Analysis) && cache_hit) // write hit
+        if ( (S == Analysis && !probe_on_curr_line) && cache_hit) // write hit
             c_data_i = c_data_update;
         else if (S == RdfromMem && coherence_done_i)     // write miss
             c_data_i = m_data_update;
@@ -867,7 +884,7 @@ begin
 end
 
 assign coherence_rw_o = p_rw_r;
-assign share_modify_o = ((S == WriteHitShare && !coherence_done_i) || S_nxt == WriteHitShare); // write hit on share state
+assign share_modify_o = ((S == WriteHitShare && !coherence_done_i) || S_nxt == WriteHitShare) && !probe_on_share_modify_line; // write hit on share state
 // Set a signal for flushing-in-progress notification
 always @(posedge clk_i) begin
     if (rst_i)
@@ -883,7 +900,7 @@ end
 //=======================================================================
 //**** cache write ****//
 always @(*) begin
-    if ((S == Analysis) && cache_hit && p_rw_r)
+    if ((S == Analysis && !probe_on_curr_line) && cache_hit && p_rw_r)
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             cache_write[idx] = way_hit[idx];
     else if (S == RdfromMem && coherence_done_i)
@@ -921,7 +938,7 @@ always @(*) begin
     else if ((S == RdfromMem) && coherence_done_i)  //own get M
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             dirty_write[idx] = (idx == victim_sel);
-    else if (S == Analysis && cache_hit && p_rw_r) // write hit
+    else if (S == Analysis && !probe_on_curr_line && cache_hit && p_rw_r) // write hit
         for (idx = 0; idx < N_WAYS; idx = idx + 1)
             dirty_write[idx] = (idx == hit_index);
     else
@@ -1044,7 +1061,7 @@ endgenerate
 // own get E->                    dirty <= 0    (I -> E/S)
 // own get M->                    dirty <= 1    (I -> M)
 assign dirty_data = (S == RdfromMem && coherence_done_i && p_rw_r) ||  // own get M
-                 (S == Analysis && cache_hit && p_rw_r) ? 1'b1 : 1'b0;            // own write hit
+                 (S == Analysis && !probe_on_curr_line && cache_hit && p_rw_r) ? 1'b1 : 1'b0;            // own write hit
 
 assign dirty_waddr =
                      (S_nxt == WbtoMemAllFinish)? N_LINES_cnt :
@@ -1185,83 +1202,83 @@ end
 //        end
 // end
 
-reg [15:0] curr_latency, write_share_latency, relpace_latency;
-reg miss_flag, write_share_flag;
-reg replace_flag;
+//reg [15:0] curr_latency, write_share_latency, relpace_latency;
+//reg miss_flag, write_share_flag;
+//reg replace_flag;
 
-(* mark_debug = "true" *)reg [55:0]  I2M_latency, I2E_latency, I2S_latency;
-(* mark_debug = "true" *)reg [31:0]  S2M_latency;
-(* mark_debug = "true" *)reg [55:0]  M2replaced_latency, E2replaced_latency;
-always @(posedge clk_i ) begin
-    if(rst_i) begin
-        I2M_latency <= 0;
-        I2E_latency <= 0;
-        I2S_latency <= 0;
-        miss_flag <= 0;
-    end
-    else begin
-        if(S_nxt == RdfromMem)  miss_flag <= 1;
-        else if(S == RdfromMem & coherence_done_i) begin
-            miss_flag <= 0;
-            if(p_rw_r) I2M_latency <= I2M_latency + curr_latency;
-            else if(make_exclusive_i) I2E_latency <= I2E_latency + curr_latency;
-            else I2S_latency <= I2S_latency + curr_latency;
-        end
-    end
-end
+//(* mark_debug = "true" *)reg [55:0]  I2M_latency, I2E_latency, I2S_latency;
+//(* mark_debug = "true" *)reg [31:0]  S2M_latency;
+//(* mark_debug = "true" *)reg [55:0]  M2replaced_latency, E2replaced_latency;
+//always @(posedge clk_i ) begin
+//    if(rst_i) begin
+//        I2M_latency <= 0;
+//        I2E_latency <= 0;
+//        I2S_latency <= 0;
+//        miss_flag <= 0;
+//    end
+//    else begin
+//        if(S_nxt == RdfromMem)  miss_flag <= 1;
+//        else if(S == RdfromMem & coherence_done_i) begin
+//            miss_flag <= 0;
+//            if(p_rw_r) I2M_latency <= I2M_latency + curr_latency;
+//            else if(make_exclusive_i) I2E_latency <= I2E_latency + curr_latency;
+//            else I2S_latency <= I2S_latency + curr_latency;
+//        end
+//    end
+//end
 
-always @(posedge clk_i ) begin
-    if(rst_i) begin
-        M2replaced_latency <= 0;
-        E2replaced_latency <= 0;
-        replace_flag <= 0;
-    end
-    else begin
-        if(S_nxt == WbtoMem) replace_flag <= 1;
-        else if(S == WbtoMem & coherence_done_i) begin
-            replace_flag <= 0;
-            if(busy_flushing_o) begin
-                if(c_dirty_o[N_WAYS_cnt]) M2replaced_latency <= M2replaced_latency + relpace_latency;
-                else E2replaced_latency <= E2replaced_latency + relpace_latency;
-            end
-            else begin
-                if(c_dirty_o[victim_sel]) M2replaced_latency <= M2replaced_latency + relpace_latency;
-                else E2replaced_latency <= E2replaced_latency + relpace_latency;
-            end
-        end
-    end
-end
+//always @(posedge clk_i ) begin
+//    if(rst_i) begin
+//        M2replaced_latency <= 0;
+//        E2replaced_latency <= 0;
+//        replace_flag <= 0;
+//    end
+//    else begin
+//        if(S_nxt == WbtoMem) replace_flag <= 1;
+//        else if(S == WbtoMem & coherence_done_i) begin
+//            replace_flag <= 0;
+//            if(busy_flushing_o) begin
+//                if(c_dirty_o[N_WAYS_cnt]) M2replaced_latency <= M2replaced_latency + relpace_latency;
+//                else E2replaced_latency <= E2replaced_latency + relpace_latency;
+//            end
+//            else begin
+//                if(c_dirty_o[victim_sel]) M2replaced_latency <= M2replaced_latency + relpace_latency;
+//                else E2replaced_latency <= E2replaced_latency + relpace_latency;
+//            end
+//        end
+//    end
+//end
 
-always @(posedge clk_i ) begin
-    if(rst_i) begin
-        S2M_latency <= 0;
-        write_share_flag <= 0;
-    end
-    else begin
-        if(S_nxt == WriteHitShare)  write_share_flag <= 1;
-        else if(S == WriteHitShare & coherence_done_i) begin
-            write_share_flag <= 0;
-            S2M_latency <= S2M_latency + write_share_latency;
-        end
-    end
-end
+//always @(posedge clk_i ) begin
+//    if(rst_i) begin
+//        S2M_latency <= 0;
+//        write_share_flag <= 0;
+//    end
+//    else begin
+//        if(S_nxt == WriteHitShare)  write_share_flag <= 1;
+//        else if(S == WriteHitShare & coherence_done_i) begin
+//            write_share_flag <= 0;
+//            S2M_latency <= S2M_latency + write_share_latency;
+//        end
+//    end
+//end
 
-always @(posedge clk_i ) begin
-    if(rst_i) curr_latency <= 0;
-    else if(miss_flag ) curr_latency <= curr_latency + 1;
-    else curr_latency <= 0;
-end
+//always @(posedge clk_i ) begin
+//    if(rst_i) curr_latency <= 0;
+//    else if(miss_flag ) curr_latency <= curr_latency + 1;
+//    else curr_latency <= 0;
+//end
 
-always @(posedge clk_i ) begin
-    if(rst_i) write_share_latency <= 0;
-    else if(write_share_flag ) write_share_latency <= write_share_latency + 1;
-    else write_share_latency <= 0;
-end
+//always @(posedge clk_i ) begin
+//    if(rst_i) write_share_latency <= 0;
+//    else if(write_share_flag ) write_share_latency <= write_share_latency + 1;
+//    else write_share_latency <= 0;
+//end
 
-always @(posedge clk_i ) begin
-    if(rst_i) relpace_latency <= 0;
-    else if(replace_flag ) relpace_latency <= relpace_latency + 1;
-    else relpace_latency <= 0;
-end
+//always @(posedge clk_i ) begin
+//    if(rst_i) relpace_latency <= 0;
+//    else if(replace_flag ) relpace_latency <= relpace_latency + 1;
+//    else relpace_latency <= 0;
+//end
 
 endmodule

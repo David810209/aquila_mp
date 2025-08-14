@@ -61,6 +61,9 @@ Integration of a Memory Management Unit (MMU) to enable Linux OS support.
 - **mem/** – Contains the uartboot code that can be compiled in `sw/uartboot`
 - **soc_rtl/** – Contains the top-level RTL code for the Aquila SoC  
 
+### **tb_verilator/**
+- Contains testbenches for Verilator simulation
+
 ### **build_arty100.tcl**
 - Script to build the Aquila-Quad SoC on the Arty A7-100T board
 

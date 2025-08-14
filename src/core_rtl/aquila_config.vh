@@ -55,7 +55,7 @@
 
 // The target board can be ARTY, AXKU5, QMCore, Genesys2, K7BaseC, or KC705,
 // the MACRO is defined globally in the TCL script when the project was created
-
+`define QMCore
 `ifdef ARTY
     `define UIADR 28              // DRAM chip addr width
     `define CLP   128             // Cache line size
@@ -129,12 +129,8 @@
 `endif
 
 // Numbers  of Cores
-`define CORE_NUMS 16
-// `define CORE_NUMS_2
-// `define CORE_NUMS_4
-// `define CORE_NUMS_8
-`define CORE_NUMS_16
-
+`define CORE_NUMS 4
+`define CORE_NUMS_4
 // Tightly-Coupled Memory Size
 `define TCM_SIZE_IN_WORDS 4096   // 3KB
 
@@ -165,7 +161,7 @@
 `define SIM_FNAME_2  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
 `define SIM_FNAME_3  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
 
-`define SIM_FNAME_4 "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
-`define SIM_FNAME_5  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
-`define SIM_FNAME_6  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
-`define SIM_FNAME_7  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+//`define SIM_FNAME_4 "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+//`define SIM_FNAME_5  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+//`define SIM_FNAME_6  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"
+//`define SIM_FNAME_7  "/home/zichen/zichen/aquila_mp/sw/test/test_0.elf"

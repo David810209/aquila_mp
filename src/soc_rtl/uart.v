@@ -360,61 +360,6 @@ begin
     end
 
     $fclose(fd);
-
-    //************** ELF file for Core 5 **************//
-    fd = $fopen(`SIM_FNAME_5, "rb");
-    if (fd == 0)
-    begin
-        $display("Open file %s failed", `SIM_FNAME_5);
-        $stop();
-    end
-
-    eof = 0;
-    ch_counter_5 = 0;
-    while (eof == 0) begin
-       data_image_5[ch_counter_5] = $fgetc(fd);
-       eof = $feof(fd);
-       ch_counter_5 = ch_counter_5 + 1;
-    end
-
-    $fclose(fd);
-
-    //************** ELF file for Core 6 **************//
-    fd = $fopen(`SIM_FNAME_6, "rb");
-    if (fd == 0)
-    begin
-        $display("Open file %s failed", `SIM_FNAME_6);
-        $stop();
-    end
-
-    eof = 0;
-    ch_counter_6 = 0;
-    while (eof == 0) begin
-       data_image_6[ch_counter_6] = $fgetc(fd);
-       eof = $feof(fd);
-       ch_counter_6 = ch_counter_6 + 1;
-    end
-
-    $fclose(fd);
-
-    //************** ELF file for Core 7 **************//
-    fd = $fopen(`SIM_FNAME_7, "rb");
-    if (fd == 0)
-    begin
-        $display("Open file %s failed", `SIM_FNAME_7);
-        $stop();
-    end
-
-    eof = 0;
-    ch_counter_7 = 0;
-    while (eof == 0) begin
-       data_image_7[ch_counter_7] = $fgetc(fd);
-       eof = $feof(fd);
-       ch_counter_7 = ch_counter_7 + 1;
-    end
-
-    $fclose(fd);
-
 end
 
 always @(posedge clk) begin

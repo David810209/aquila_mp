@@ -23,7 +23,7 @@ module device_arbiter #(parameter XLEN = 32, parameter CORE_NUMS = `CORE_NUMS,pa
     output                      DEVICE_rw_o,
     output [XLEN/8-1 : 0]       DEVICE_byte_enable_o,
     output [XLEN-1 : 0]         DEVICE_data_o,
-    input                       DEVICE_data_ready_i,
+    (* mark_debug = "true" *) input                       DEVICE_data_ready_i,
     input [XLEN-1 : 0]          DEVICE_data_i,
 
     output reg [CORE_NUMS_BITS-1:0]            uart_core_sel_o

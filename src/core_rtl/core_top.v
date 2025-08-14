@@ -233,7 +233,7 @@ wire [ 1 : 0]     exe2mem_sys_jump_csr_addr;
 wire              exe2mem_xcpt_valid;
 wire [ 3 : 0]     exe2mem_xcpt_cause;
 wire [XLEN-1 : 0] exe2mem_xcpt_tval;
-wire [XLEN-1 : 0] exe2mem_pc;
+(* mark_debug = "true" *) wire [XLEN-1 : 0] exe2mem_pc;
 
 // ------------------------------
 //  Memory stage output signals
@@ -359,10 +359,10 @@ reg [1:0] dS, dS_nxt;
 //    # stall_data_hazard only stall the Program_Counter and the Fetch stages
 //
 wire stall_data_hazard; // The stall signal from Pipeline Control.
-wire stall_from_exe;    // The stall signal from Execute.
-wire stall_instr_fetch;
-wire stall_data_fetch;
-wire stall_pipeline;
+(* mark_debug = "true" *) wire stall_from_exe;    // The stall signal from Execute.
+(* mark_debug = "true" *) wire stall_instr_fetch;
+(* mark_debug = "true" *) wire stall_data_fetch;
+(* mark_debug = "true" *) wire stall_pipeline;
 
 assign stall_instr_fetch = (!code_ready_i);
 assign stall_data_fetch = (dS_nxt == d_WAIT) && (! exe_is_fencei);
@@ -461,7 +461,7 @@ end
 
 // -----------------------------------------------------------------------------
 // Output instruction/data request signals
-assign code_req_o = (iS == i_NEXT);
+assign code_req_o = (iS == i_NEXT) || (pcu_pc == init_pc_addr_i); // The condition (pcu_pc == init_pc_addr_i) is primarily for Verilator simulation and does not affect the behavior in vivado.
 assign data_req_o = (dS == d_IDLE) && (exe_re || exe_we);
 
 // -----------------------------------------------------------------------------

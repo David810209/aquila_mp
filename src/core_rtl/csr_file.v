@@ -249,9 +249,9 @@ reg  [XLEN-1 : 0] mie_r /* verilator public */;
 reg  [XLEN-1 : 0] mip_r;
 reg  [XLEN-1 : 0] mtvec_r;
 reg  [XLEN-1 : 0] mscratch_r;
-reg  [XLEN-1 : 0] mepc_r;
-reg  [XLEN-1 : 0] mcause_r, mcause_d;
-reg  [XLEN-1 : 0] mtval_r;  // for exception
+(* mark_debug = "true" *) reg  [XLEN-1 : 0] mepc_r;
+(* mark_debug = "true" *) reg  [XLEN-1 : 0] mcause_r, mcause_d;
+(* mark_debug = "true" *) reg  [XLEN-1 : 0]  mtval_r   ;  // for exception
 reg  [XLEN-1 : 0] medeleg_r;  // for exception
 reg  [XLEN-1 : 0] mideleg_r;  // for interrupt
 reg  [63     : 0] mcycle_r;

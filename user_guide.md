@@ -23,7 +23,28 @@
     - Execute `run --all`.
 
 ---
+## Verilator Simulation
 
+1. In `aquila_config.vh`, go to line 58 and ensure that either `define ARTY` or `define QMCORE` is set. Otherwise, simulation will fail.
+2. Build the Verilator simulation:
+  ```sh
+  make core_verilate
+  ```
+3. Enter the build directory:
+  ```sh
+  cd core_obj_dir
+  ```
+4. Run the simulation with your ELF file:
+  ```sh
+  ./Vaquila_testharness [elf file path]
+  ```
+5. To view waveforms, use GTKWave:
+  ```sh
+  gtkwave aquila_core.fst
+  ```
+6. In GTKWave, you can open `tb_verilator/test.gtkw` to quickly load commonly used signals.
+
+---
 ## Software
 
 ### 1. OCR
@@ -51,6 +72,13 @@
   - `N=64, TIMES=100`
   - `N=256, TIMES=1`
 - **Note**: If `N` is not a multiple of 4, errors may occur due to lack of write protection on the same cache block..
+### 6. 16-Core Testing
+- **Matrix Multiply**:
+  1. Navigate to the `sw/matrix` directory.
+  2. Update the linker script by replacing the content of `test_0.ld` with `test_0_for_16cores.ld`.
+- **Elibc**:
+  1. Navigate to the `sw/elibc` directory.
+  2. Modify the startup file by replacing the content of `crt0.c` with `crt0_16cores.c`.
 
 ### 3. array sorting
 - **Folder**: `./sorting`
@@ -59,7 +87,7 @@
   1. Run `./build.sh`.
   2. Perform behavioral simulation.
 - **On FPGA**:
-  1. Adjust `#define`.
+  1. Adjust `#define`, `CORE_NUMS`.
   2. Run `./build.sh`.
   3. Execute `./send_elf.sh`.
 - **Test Cases**:
@@ -84,6 +112,12 @@
         asm volatile ("lw t1, (t2)");
         asm volatile
   }
+
+  __attribute__((optimize("O0"))) static void release(void) {
+    asm volatile ("lui t0, %hi(print_lock)");
+    asm volatile ("lw t2, %lo(print_lock)(t0)");
+    asm volatile ("amoswap.w.rl x0, x0, (t2)");
+}
 ```
 
 semaphore:

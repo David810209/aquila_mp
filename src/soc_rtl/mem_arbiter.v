@@ -107,8 +107,8 @@ module mem_arbiter #(
     output [WDF_DBITS/8-1 : 0] M_MEM_wdf_mask_o,
     output                     M_MEM_wdf_wren_o,
     input  [WDF_DBITS-1 : 0]   M_MEM_rd_data_i,
-    input                      M_MEM_rd_data_valid_i,
-    input                      M_MEM_rdy_i,
+    (* mark_debug = "true" *)input                      M_MEM_rd_data_valid_i,
+    (* mark_debug = "true" *) input                      M_MEM_rdy_i,
     input                      M_MEM_wdf_rdy_i,
     output                     M_MEM_sr_req_o,
     output                     M_MEM_ref_req_o,
@@ -142,7 +142,7 @@ module mem_arbiter #(
 
     // input selection signals
     wire                     concurrent_strobe;
-    reg                      sel_current;
+    (* mark_debug = "true" *) reg                      sel_current;
     reg                      sel_previous;
 
     reg                      sel;
@@ -159,7 +159,7 @@ module mem_arbiter #(
     reg  [WDF_DBITS/8-1 : 0] wmask_r;
 
     // FSM signals
-    reg  [  2 : 0]           c_state;
+    (* mark_debug = "true" *) reg  [  2 : 0]           c_state;
     reg  [  2 : 0]           n_state;
     wire                     have_strobe;
     wire                     mig_ready;

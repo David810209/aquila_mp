@@ -446,7 +446,7 @@ I_Cache(
                 else S_next = S_I;
             
             S_D: 
-                if(CU_L1_response_ready_i) S_next = S_IDLE;
+                if(CU_L1_response_ready_i || !D_CU_strobe) S_next = S_IDLE;
                 else S_next = S_D;
             default: S_next = S_IDLE;
         endcase

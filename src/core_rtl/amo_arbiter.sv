@@ -110,7 +110,8 @@ module amo_arbiter #(
 
     // input selection signals
     wire                     concurrent_strobe;
-    reg  [CORE_NUMS_BITS-1 : 0]             sel_current;
+    (* mark_debug = "true" *) reg  [CORE_NUMS_BITS-1 : 0]             sel_current;
+    (* mark_debug = "true" *) reg  [CORE_NUMS_BITS-1 : 0]             sel_previous;
  
     reg                      AMO_strobe_r;
     reg  [XLEN-1 : 0]        AMO_addr_r;
@@ -120,7 +121,7 @@ module amo_arbiter #(
     reg  [ 4 : 0]            AMO_amo_type_r;
 
     // Keep the strobe
-    reg                      P_strobe_r[0 : CORE_NUMS-1];
+    (* mark_debug = "true" *) reg                      P_strobe_r[0 : CORE_NUMS-1];
     reg  [XLEN-1 : 0]        P_addr_r[0 : CORE_NUMS-1];
     reg                      P_rw_r[0 : CORE_NUMS-1];
     reg  [XLEN-1 : 0]        P_data_r[0 : CORE_NUMS-1];
@@ -128,7 +129,7 @@ module amo_arbiter #(
     reg  [ 4 : 0]            P_amo_type_r[0 : CORE_NUMS-1];
     
     // FSM signals
-    reg  [1 : 0]             c_state;
+    (* mark_debug = "true" *) reg  [1 : 0]             c_state;
     reg  [1 : 0]             n_state;
     wire                     have_strobe;
     integer i;
@@ -327,12 +328,12 @@ module amo_arbiter #(
     //=======================================================
     
     // assign concurrent_strobe = P_strobe_r[0] & P_strobe_r[1];
-    // always @(posedge clk_i) begin
-    //     if (rst_i) 
-    //         sel_previous <= 0;
-    //     else if (c_state == M_CHOOSE)
-    //         sel_previous <= sel_current;
-    // end
+    always @(posedge clk_i) begin
+        if (rst_i) 
+            sel_previous <= 0;
+        else if (c_state == M_CHOOSE)
+            sel_previous <= sel_current;
+    end
 `ifdef CORE_NUMS_2
     always @(posedge clk_i) begin
         if (rst_i) 
@@ -349,16 +350,47 @@ module amo_arbiter #(
         if (rst_i) 
             sel_current <= 0;
         else if(c_state == M_IDLE)begin
-            if(P_strobe_r[0])
-                sel_current <= P0_STROBE;
-            else if(P_strobe_r[1])
-                sel_current <= P1_STROBE;
-            else if(P_strobe_r[2])
-                sel_current <= P2_STROBE;
-            else if(P_strobe_r[3])
-                sel_current <= P3_STROBE;
+            if(sel_previous == 0)begin
+                if(P_strobe_r[1])
+                    sel_current <= P1_STROBE;
+                else if(P_strobe_r[2])      
+                    sel_current <= P2_STROBE;
+                else if(P_strobe_r[3])
+                    sel_current <= P3_STROBE;
+                else if(P_strobe_r[0])
+                    sel_current <= P0_STROBE;
+            end else if(sel_previous == 1)begin
+                if(P_strobe_r[2])
+                    sel_current <= P2_STROBE;
+                else if(P_strobe_r[3])      
+                    sel_current <= P3_STROBE;
+                else if(P_strobe_r[0])
+                    sel_current <= P0_STROBE;
+                else if(P_strobe_r[1])
+                    sel_current <= P1_STROBE;
+            end else if(sel_previous == 2)begin
+                if(P_strobe_r[3])
+                    sel_current <= P3_STROBE;
+                else if(P_strobe_r[0])      
+                    sel_current <= P0_STROBE;
+                else if(P_strobe_r[1])
+                    sel_current <= P1_STROBE;
+                else if(P_strobe_r[2])
+                    sel_current <= P2_STROBE;
+            end else begin
+                if(P_strobe_r[0])
+                    sel_current <= P0_STROBE;
+                else if(P_strobe_r[1])      
+                    sel_current <= P1_STROBE;
+                else if(P_strobe_r[2])
+                    sel_current <= P2_STROBE;
+                else if(P_strobe_r[3])
+                    sel_current <= P3_STROBE;
+            end
         end
     end
+
+
 `elsif CORE_NUMS_8 // CORE_NUMS_8
     always @(posedge clk_i) begin
         if (rst_i) 

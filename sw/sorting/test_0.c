@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <time.h>
 #define LENGTH 40000
-#define CORE_NUM 8  
-#define N (LENGTH / CORE_NUM)
+ 
+#define N (LENGTH / 8)
+// modify the define below to test different number of cores
+#define CORE_NUM 4
 // #define is_one
-#define is_two
+// #define is_two
 // #define is_Eight 
-// #define is_four
+#define is_four
 volatile unsigned int *print_lock = (unsigned int *)0x80000020U;
 
 __attribute__((optimize("O0"))) static void atomic_or(volatile unsigned int *addr, int val) {
@@ -47,9 +49,9 @@ void sort_segment(int start, int end) {
 
 
 void merge_segments(int start1, int end1, int start2, int end2, int dest_start) {
-    unsigned int temp[N * CORE_NUM];
+    unsigned int temp[N * 8];
     int i = start1, j = start2, k = dest_start;
-    for(int i=0;i<N*CORE_NUM;i++){
+    for(int i=0;i<N*8;i++){
         temp[i] = 0;
     }
 
@@ -85,7 +87,7 @@ void merge_segments(int start1, int end1, int start2, int end2, int dest_start) 
 
 
 int is_sorted() {
-    for (int i = 1; i < N * CORE_NUM; i++) {
+    for (int i = 1; i < N * 8; i++) {
         if (data[i] < data[i - 1]) return 0;
     }
     return 1;
@@ -126,10 +128,10 @@ int main() {
         *done_final = 0;
         clock_t tick, ticks_per_msec = CLOCKS_PER_SEC / 1000;
         tick = clock();
-        data     = (unsigned int *)malloc(N * CORE_NUM * sizeof(unsigned int));
-        original = (unsigned int *)malloc(N * CORE_NUM * sizeof(unsigned int));
+        data     = (unsigned int *)malloc(N * 8 * sizeof(unsigned int));
+        original = (unsigned int *)malloc(N * 8 * sizeof(unsigned int));
 
-        for (int i = 0; i < N * CORE_NUM; i++) {
+        for (int i = 0; i < N * 8; i++) {
             int number = rand() % 10000;
             data[i] = number;
             original[i] = number;
@@ -150,16 +152,20 @@ int main() {
         sort_segment(5 * N, 6 * N - 1);   
         sort_segment(6 * N, 7 * N - 1);   
         sort_segment(7 * N, 8 * N - 1);   
+        printf("finish first sort\n");
         // first merge
         merge_segments(0 * N, 1 * N - 1, 1 * N, 2 * N - 1, 0 * 2 * N);  
         merge_segments(2 * N, 3 * N - 1, 3 * N, 4 * N - 1, 1 * 2 * N);  
         merge_segments(4 * N, 5 * N - 1, 5 * N, 6 * N - 1, 2 * 2 * N);
         merge_segments(6 * N, 7 * N - 1, 7 * N, 8 * N - 1, 3 * 2 * N);
+        printf("finish first merge\n");
         // second merge
         merge_segments(0, (2 * N - 1), (2 * N), (4 * N - 1), 0);
         merge_segments(4 * N, (6 * N - 1), (6 * N), (8 * N - 1), (4 * N));
+        printf("finish second merge\n");
         // third merge
         merge_segments(0, (4 * N - 1), (4 * N), (8 * N - 1), 0);
+        printf("finish third merge\n");
 
         // atomic_or(done_first, 1 << hart_id);
         // while (*done_first != mask);
@@ -244,7 +250,7 @@ int main() {
         printf("It took %ld msec to sort.\n", tick);
 
 
-        quicksort(original, 0, N * CORE_NUM - 1);
+        quicksort(original, 0, N * 8 - 1);
         int correct = 1;
         
         for(int i = 0;i<LENGTH;i++){

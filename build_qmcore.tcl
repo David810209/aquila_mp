@@ -41,7 +41,7 @@ set common_files [list \
   [file normalize "$origin_dir/src/core_rtl/alu.v" ]\
   [file normalize "$origin_dir/src/core_rtl/aquila_config.vh" ]\
   [file normalize "$origin_dir/src/core_rtl/aquila_top.v" ]\
-  [file normalize "$origin_dir/src/core_rtl/amo_arbiter.v" ]\
+  [file normalize "$origin_dir/src/core_rtl/amo_arbiter.sv" ]\
   [file normalize "$origin_dir/src/core_rtl/atomic_unit.v" ]\
   [file normalize "$origin_dir/src/core_rtl/bcu.v" ]\
   [file normalize "$origin_dir/src/core_rtl/bpu.v" ]\
@@ -51,7 +51,7 @@ set common_files [list \
   [file normalize "$origin_dir/src/core_rtl/csr_file.v" ]\
   [file normalize "$origin_dir/src/core_rtl/dcache.v" ]\
   [file normalize "$origin_dir/src/core_rtl/decode.v" ]\
-  [file normalize "$origin_dir/src/core_rtl/device_arbiter.v" ]\
+  [file normalize "$origin_dir/src/core_rtl/device_arbiter.sv" ]\
   [file normalize "$origin_dir/src/core_rtl/distri_ram.v" ]\
   [file normalize "$origin_dir/src/core_rtl/distri_ram_dp.v" ]\
   [file normalize "$origin_dir/src/core_rtl/execute.v" ]\
@@ -67,18 +67,16 @@ set common_files [list \
   [file normalize "$origin_dir/src/core_rtl/sram_dp.v" ]\
   [file normalize "$origin_dir/src/core_rtl/writeback.v" ]\
   [file normalize "$origin_dir/src/soc_rtl/uart.v" ]\
-  [file normalize "$origin_dir/src/soc_rtl/Coherence_Unit.v" ]\
+  [file normalize "$origin_dir/src/soc_rtl/coherence_unit.sv" ]\
   [file normalize "$origin_dir/src/soc_rtl/core2axi_if.v"]\
   [file normalize "$origin_dir/src/soc_rtl/cdc_sync.v" ]\
   [file normalize "$origin_dir/src/soc_rtl/L2cache.v" ]\
   [file normalize "$origin_dir/src/soc_rtl/mem_arbiter.v" ]\
-  [file normalize "$origin_dir/src/mem/uartboot_2core.mem" ]\
-  [file normalize "$origin_dir/src/mem/uartboot_4core.mem" ]\
-  [file normalize "$origin_dir/src/mem/uartboot_8core.mem" ]\
+  [file normalize "$origin_dir/src/mem/uartboot.mem" ]\
 ]
 
 set synth_files [list \
- [file normalize "$origin_dir/src/soc_rtl/soc_top.v" ]\
+ [file normalize "$origin_dir/src/soc_rtl/soc_top.sv" ]\
 ]
 
 set imported_files [import_files -fileset sources_1 $synth_files $common_files ]
@@ -116,7 +114,7 @@ if {[string equal [get_filesets -quiet sim_1] ""]} {
 # Set 'sim_1' fileset object
 # Import local simulation files
 set sim_files [list \
- [file normalize "$origin_dir/src/soc_rtl/soc_tb.v" ]\
+ [file normalize "$origin_dir/src/soc_rtl/soc_tb.sv" ]\
  [file normalize "$origin_dir/src/soc_rtl/mig_7series_sim.v" ]\
 ]
 set imported_files [import_files -fileset sim_1 $sim_files]

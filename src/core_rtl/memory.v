@@ -305,15 +305,15 @@ begin
         pc_o <= pc_i;
         fetch_valid_o <= fetch_valid_i;
         rd_input_sel_o <= rd_input_sel_i;
-        rd_addr_o = rd_addr_i;
-        rd_we_o = rd_we_i;
-        signex_sel_o = signex_sel_i;
+        rd_addr_o <= rd_addr_i;
+        rd_we_o <= rd_we_i;
+        signex_sel_o <= signex_sel_i;
 
         case (mem_addr_i[1 : 0])
-            2'b00: aligned_data_o = m_data_i;
-            2'b01: aligned_data_o = {m_data_i[ 7: 0], m_data_i[31: 8]};
-            2'b10: aligned_data_o = {m_data_i[15: 0], m_data_i[31: 16]};
-            2'b11: aligned_data_o = {m_data_i[23: 0], m_data_i[31: 24]};
+            2'b00: aligned_data_o <= m_data_i;
+            2'b01: aligned_data_o <= {m_data_i[ 7: 0], m_data_i[31: 8]};
+            2'b10: aligned_data_o <= {m_data_i[15: 0], m_data_i[31: 16]};
+            2'b11: aligned_data_o <= {m_data_i[23: 0], m_data_i[31: 24]};
         endcase
         p_data_o <= p_data_i;
 

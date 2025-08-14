@@ -127,7 +127,7 @@ module soc_top #( parameter XLEN = 32, parameter CLSIZE = `CLP )
 wire clk_166M, clk_200M;
 `elsif QMCore
 wire clk_200M;
-`elsif K7BaseC
+`else
 wire clk_200M;
 `endif
 
@@ -297,24 +297,10 @@ wire                dsa_ready;
 assign usr_reset = ~resetn_i;
 
 clk_wiz_0 Clock_Generator(
-    .clk_in1(sys_clk_i),  // On-board oscillator clock input
+    .clk_in1(sys_clk_i), // On-board oscillator clock input
     .clk_out1(clk),      // System clock for the Aquila SoC
     .clk_out2(clk_166M), // Clock input to the MIG Memory controller
     .clk_out3(clk_200M)  // DRAM Reference clock for MIG
-);
-`elsif KC705 // KC705, reset button adopts positive logic
-assign usr_reset = reset_i;
-
-clk_wiz_0 Clock_Generator(
-    .clk_in1(ui_clk),  // Clock input from the MIG Memory controller
-    .clk_out1(clk)     // System clock for the Aquila SoC
-);
-`elsif Genesys2 // Genesys2, reset button adopts negative logic
-assign usr_reset = ~resetn_i;
-
-clk_wiz_0 Clock_Generator(
-    .clk_in1(ui_clk),  // Clock input from the MIG Memory controller
-    .clk_out1(clk)     // System clock for the Aquila SoC
 );
 `elsif QMCore
 assign usr_reset = ~(&usr_btn);
@@ -325,6 +311,13 @@ clk_wiz_0 Clock_Generator(
     .clk_out1(clk),      // System clock for the Aquila SoC
     .clk_out2(clk_200M)  // DRAM Reference clock for MIG
 );
+`elsif KC705 // KC705, reset button adopts positive logic
+assign usr_reset = reset_i;
+
+clk_wiz_0 Clock_Generator(
+    .clk_in1(ui_clk),  // Clock input from the MIG Memory controller
+    .clk_out1(clk)     // System clock for the Aquila SoC
+);
 `elsif K7BaseC
 assign usr_reset = ~resetn_i;
 
@@ -332,6 +325,13 @@ clk_wiz_0 Clock_Generator(
     .clk_in1(sys_clk_i), // On-board oscillator clock input
     .clk_out1(clk),      // System clock for the Aquila SoC
     .clk_out2(clk_200M)  // DRAM Reference clock for MIG
+);
+`elsif Genesys2 // Genesys2, reset button adopts negative logic
+assign usr_reset = ~resetn_i;
+
+clk_wiz_0 Clock_Generator(
+    .clk_in1(ui_clk),  // Clock input from the MIG Memory controller
+    .clk_out1(clk)     // System clock for the Aquila SoC
 );
 `else
 clk_wiz_0 Clock_Generator(
