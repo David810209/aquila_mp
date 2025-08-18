@@ -241,36 +241,11 @@ end
 // Simulate UART input by reading data bytes from a file.
 //========================================================
 // pragma translate_off
-integer      fd = 0, eof, ch_counter_0, ch_counter_1, ch_counter_2, ch_counter_3, idx, jdx;
-integer      ch_counter_4, ch_counter_5, ch_counter_6, ch_counter_7;
+integer      fd = 0, eof, ch_counter_0, idx, jdx;
 reg [31 : 0] byte_idx_0;
-reg [31 : 0] byte_idx_1;
-reg [31 : 0] byte_idx_2;
-reg [31 : 0] byte_idx_3;
-reg [31:0] byte_idx_4;
-reg [31:0] byte_idx_5;
-reg [31:0] byte_idx_6;
-reg [31:0] byte_idx_7;
-reg [ 7 : 0] data_image_0 [0 : 256*1024];
-reg [ 7 : 0] data_image_1 [0 : 256*1024];
-reg [ 7 : 0] data_image_2 [0 : 256*1024];
-reg [ 7 : 0] data_image_3 [0 : 256*1024];
-reg [ 7 : 0] data_image_4 [0 : 256*1024];
-reg [ 7 : 0] data_image_5 [0 : 256*1024];
-reg [ 7 : 0] data_image_6 [0 : 256*1024];
-reg [ 7 : 0] data_image_7 [0 : 256*1024];
+reg [ 7 : 0] data_image_0 [0 : 512*1024];
 always @(*) begin
-    case(uart_core_sel)
-        0: assign rxsim_data = data_image_0[byte_idx_0];
-        1: assign rxsim_data = data_image_1[byte_idx_1];
-        2: assign rxsim_data = data_image_2[byte_idx_2];
-        3: assign rxsim_data = data_image_3[byte_idx_3];
-        4: assign rxsim_data = data_image_4[byte_idx_4];
-        5: assign rxsim_data = data_image_5[byte_idx_5];
-        6: assign rxsim_data = data_image_6[byte_idx_6];
-        7: assign rxsim_data = data_image_7[byte_idx_7];
-        default: assign rxsim_data = 8'b0;
-    endcase
+    rxsim_data = data_image_0[byte_idx_0];
 end
 
 // 
@@ -292,74 +267,14 @@ begin
        data_image_0[ch_counter_0] = $fgetc(fd);
        eof = $feof(fd);
        ch_counter_0 = ch_counter_0 + 1;
+       if(ch_counter_0 >= 512*1024) begin
+           $display("Warning: data_image_0 overflow");
+       end
     end
 
     // Close the file handle pointed to by "fd"
     $fclose(fd);
 
-    //************** ELF file for Core 1 **************//
-    fd = $fopen(`SIM_FNAME_1, "rb");
-    if (fd == 0)
-    begin
-        $display("Open file %s failed", `SIM_FNAME_1);
-        $stop();
-    end
-
-    eof = 0;
-    ch_counter_1 = 0;
-    while (eof == 0) begin
-       data_image_1[ch_counter_1] = $fgetc(fd);
-       eof = $feof(fd);
-       ch_counter_1 = ch_counter_1 + 1;
-    end
-
-    // Close the file handle pointed to by "fd"
-    $fclose(fd);
-    //************** ELF file for Core 2 **************//
-    fd = $fopen(`SIM_FNAME_2, "rb");
-    if (fd == 0)
-    begin
-        $display("Open file %s failed", `SIM_FNAME_2);
-        $stop();
-    end
-
-    eof = 0;
-    ch_counter_2 = 0;
-    while (eof == 0) begin
-       data_image_2[ch_counter_2] = $fgetc(fd);
-       eof = $feof(fd);
-       ch_counter_2 = ch_counter_2 + 1;
-    end
-
-    // Close the file handle pointed to by "fd"
-    $fclose(fd);
-    //************** ELF file for Core 3**************//
-    fd = $fopen(`SIM_FNAME_3, "rb");
-    if (fd == 0)
-    begin
-        $display("Open file %s failed", `SIM_FNAME_3);
-        $stop();
-    end
-
-    eof = 0;
-    ch_counter_3 = 0;
-    while (eof == 0) begin
-       data_image_3[ch_counter_3] = $fgetc(fd);
-       eof = $feof(fd);
-       ch_counter_3 = ch_counter_3 + 1;
-    end
-
-    // Close the file handle pointed to by "fd"
-    $fclose(fd);
-    eof = 0;
-    ch_counter_4 = 0;
-    while (eof == 0) begin
-       data_image_4[ch_counter_4] = $fgetc(fd);
-       eof = $feof(fd);
-       ch_counter_4 = ch_counter_4 + 1;
-    end
-
-    $fclose(fd);
 end
 
 always @(posedge clk) begin
@@ -371,68 +286,6 @@ always @(posedge clk) begin
     end
 end
 
-always @(posedge clk) begin
-    if (rst)
-        byte_idx_1 <= 0;
-    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_1 < ch_counter_1 && uart_core_sel==1)
-    begin
-        byte_idx_1 <= byte_idx_1 + 1;
-    end
-end
-
-always @(posedge clk) begin
-    if (rst)
-        byte_idx_2 <= 0;
-    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_2 < ch_counter_2 && uart_core_sel==2)
-    begin
-        byte_idx_2 <= byte_idx_2 + 1;
-    end
-end
-
-always @(posedge clk) begin
-    if (rst)
-        byte_idx_3 <= 0;
-    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_3 < ch_counter_3 && uart_core_sel==3)
-    begin
-        byte_idx_3 <= byte_idx_3 + 1;
-    end
-end
-
-always @(posedge clk) begin
-    if (rst)
-        byte_idx_4 <= 0;
-    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_4 < ch_counter_4 && uart_core_sel==4)
-    begin
-        byte_idx_4 <= byte_idx_4 + 1;
-    end
-end
-
-always @(posedge clk) begin
-    if (rst)
-        byte_idx_5 <= 0;
-    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_5 < ch_counter_5 && uart_core_sel==5)
-    begin
-        byte_idx_5 <= byte_idx_5 + 1;
-    end
-end
-
-always @(posedge clk) begin
-    if (rst)
-        byte_idx_6 <= 0;
-    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_6 < ch_counter_6 && uart_core_sel==6)
-    begin
-        byte_idx_6 <= byte_idx_6 + 1;
-    end
-end
-
-always @(posedge clk) begin
-    if (rst)
-        byte_idx_7 <= 0;
-    else if (EN && !WR && (ADDR == 2'b00) && byte_idx_7 < ch_counter_7 && uart_core_sel==7)
-    begin
-        byte_idx_7 <= byte_idx_7 + 1;
-    end
-end
 // pragma translate_on
 
 endmodule

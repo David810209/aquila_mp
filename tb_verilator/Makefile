@@ -22,6 +22,9 @@ verilator_flag=--cc --assert --clk cfg_dev_aclk  -O3  -Wno-MODDUP
 verilator_lint_flag=--lint-only  -Wno-MODDUP
 TORTURE_CASE=10
 
+.PHONY: all
+all: core_verilate
+
 .PHONY: core_lint
 core_lint:
 	$(VERILATOR) -cc $(AQUILA_CORE_SRC) $(CORE_VER_SRC) \
@@ -54,7 +57,7 @@ core_verilate:
 	--top-module aquila_testharness  --trace-fst --trace-max-array 3000 \
 	--trace-max-width 2560  --exe  csrc/aquila_core_tb.cpp csrc/sim_mem.cpp 
 	make -j -C core_obj_dir -f Vaquila_testharness.mk Vaquila_testharness
-	cp uartboot.mem core_obj_dir
+	cp ../src/mem/uartboot.mem core_obj_dir
 
 .PHONY: build_riscv_tests
 .ONESHELL:

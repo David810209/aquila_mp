@@ -220,7 +220,7 @@ module aquila_testharness #(
     assign M_IMEM_strobe = 0;
     assign M_IMEM_addr = 0;
 
-
+    wire uart_simulation_done /*verilator public*/;
     // Debug pc
     wire [                              31:0] debug_pc  /*verilator public_flat*/;
     // assign debug_pc = aquila_core.p_i_addr;
@@ -254,12 +254,69 @@ module aquila_testharness #(
     assign intc_strobe = (is_dev_req && (dev_sel == 1))? M_DEVICE_strobe : 0;
     assign intc_rw = (is_dev_req && (dev_sel == 1))? M_DEVICE_rw : 0;
     // Instiantiation of the top-level Aquila core module.
-  // -----------------------------------------------------------------------------
-  //  Aquila processor core.
-  //
+    // -----------------------------------------------------------------------------
+    //  Aquila processor core.
+    //
+    // Core 0 is instantiated separately for Verilator to monitor the program counter (PC).
+    aquila_top #(.HART_ID(0), .XLEN(XLEN), .CLSIZE(CLSIZE)) 
+            aquila_core
+            (
+                //system signals
+                .clk_i(clk),
+                .rst_i(~rst_n),
+
+                // Initial program counter address for the Aquila core
+                .base_addr_i(main_memory_addr),
+                // .base_addr_i(32'b0),
+                // Aquila external I/D memory interface signals
+                // coherence unit signals
+                .CU_L1_probe_strobe_i(CU_L1_probe_strobe[0]),
+                .CU_L1_probe_addr_i(CU_L1_probe_addr[0]),
+                .CU_L1_invalidate_i(CU_L1_invalidate[0]),
+                .CU_L1_data_i(CU_L1_data[0]),
+                .CU_L1_make_exclusive_i(CU_L1_make_exclusive[0]),
+                .CU_L1_response_ready_i(CU_L1_response_ready[0]),
+                .CU_L1_is_amo_i(CU_L1_other_amo[0]),
+
+                .L1_CU_response_data_o(L1_CU_response_data[0]),
+                .L1_CU_wb_data_o(L1_CU_wb_data[0]),
+                .L1_CU_addr_o(L1_CU_addr[0]),
+                .L1_CU_strobe_o(L1_CU_strobe[0]),
+                .L1_CU_rw_o(L1_CU_rw[0]),
+                .L1_CU_share_modify_o(L1_CU_share_modify[0]),
+                .L1_CU_response_ready_o(L1_CU_response_ready[0]),
+                .L1_CU_replacement_o(L1_CU_replacement[0]),
+                .L1_CU_is_instr_fetch_o(L1_CU_is_instr_fetch[0]),
+                
+                // Atomic instructions ports 
+                .C2AMO_strobe_o(C2AMO_strobe[0]),
+                .C2AMO_rw_o(C2AMO_rw[0]),
+                .C2AMO_addr_o(C2AMO_addr[0]),
+                .C2AMO_data_o(C2AMO_wt_data[0]),
+                .C2AMO_data_ready_i(C2AMO_done[0]),
+                .C2AMO_data_i(C2AMO_rd_data[0]),
+                .C2AMO_is_amo_o(C2AMO_is_amo[0]),
+                .C2AMO_amo_type_o(C2AMO_amo_type[0]),
+
+                .AMO2C_strobe_i(AMO2C_strobe[0]),
+                .AMO2C_rw_i(AMO2C_rw[0]),
+                .AMO2C_addr_i(AMO2C_addr[0]),
+                .AMO2C_data_i(AMO2C_wt_data[0]),
+                .AMO2C_data_ready_o(AMO2C_done[0]),
+                .AMO2C_data_o(AMO2C_rd_data[0]),
+                // Aquila M_DEVICE master port interface signals
+                // I/O device ports.
+                .M_DEVICE_strobe_o(dev_strobe[0]),
+                .M_DEVICE_addr_o(dev_addr[0]),
+                .M_DEVICE_rw_o(dev_we[0]),
+                .M_DEVICE_byte_enable_o(dev_be[0]),
+                .M_DEVICE_data_o(dev_din[0]),
+                .M_DEVICE_data_ready_i(dev_ready[0]),
+                .M_DEVICE_data_i(dev_dout[0])
+            );
     genvar i;
     generate
-        for (i = 0; i < `CORE_NUMS; i = i + 1)
+        for (i = 1; i < `CORE_NUMS; i = i + 1)
         begin
             aquila_top #(.HART_ID(i), .XLEN(XLEN), .CLSIZE(CLSIZE)) 
             aquila_top
@@ -270,7 +327,7 @@ module aquila_testharness #(
 
                 // Initial program counter address for the Aquila core
                 .base_addr_i(main_memory_addr),
-                // .base_addr_i(main_memory_addr),
+                // .base_addr_i(32'b0),
                 // Aquila external I/D memory interface signals
                 // coherence unit signals
                 .CU_L1_probe_strobe_i(CU_L1_probe_strobe[i]),
@@ -585,22 +642,39 @@ L2cache #(.XLEN(XLEN), .CLSIZE(CLSIZE), .CACHE_SIZE(`L2CACHE_SIZE))
         .done_dmem_o(M_DMEM_done)
     );
 
-     
+    uart UART(
+        .clk(clk),
+        .rst(rst),
 
-    mock_uart mock_uart_0 (
-        .clk  (clk),
-        .rst_n(rst_n),
+        .EN(uart_strobe),
+        .ADDR(M_DEVICE_addr[3:2]),
+        .WR(uart_rw),
+        .BE(M_DEVICE_byte_enable),
+        .DATAI(M_DEVICE_core2dev_data),
+        .DATAO(uart_data),
+        .READY(uart_data_ready),
 
-        .M_DEVICE_strobe       (uart_strobe),
-        .M_DEVICE_addr         (M_DEVICE_addr),
-        .M_DEVICE_rw           (uart_rw),
-        .M_DEVICE_byte_enable  (M_DEVICE_byte_enable),
-        .M_DEVICE_core2dev_data(M_DEVICE_core2dev_data),
-        .M_DEVICE_data_ready   (uart_data_ready),
-        .M_DEVICE_dev2core_data(uart_data),
-        .intr_o                (uart_intr)
+        .RXD(uart_rx),
+        .TXD(uart_tx),
 
+        .simulation_done(uart_simulation_done),
+        .uart_core_sel(0)
     );
+
+    // mock_uart mock_uart_0 (
+    //     .clk  (clk),
+    //     .rst_n(rst_n),
+
+    //     .M_DEVICE_strobe       (uart_strobe),
+    //     .M_DEVICE_addr         (M_DEVICE_addr),
+    //     .M_DEVICE_rw           (uart_rw),
+    //     .M_DEVICE_byte_enable  (M_DEVICE_byte_enable),
+    //     .M_DEVICE_core2dev_data(M_DEVICE_core2dev_data),
+    //     .M_DEVICE_data_ready   (uart_data_ready),
+    //     .M_DEVICE_dev2core_data(uart_data),
+    //     .intr_o                (uart_intr)
+
+    // );
 
     intc intc_0 (
         .clk                   (clk),

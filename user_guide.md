@@ -25,26 +25,10 @@
 ---
 ## Verilator Simulation
 
-1. In `aquila_config.vh`, go to line 58 and ensure that either `define ARTY` or `define QMCORE` is set. Otherwise, simulation will fail.
-2. Build the Verilator simulation:
-  ```sh
-  make core_verilate
-  ```
-3. Enter the build directory:
-  ```sh
-  cd core_obj_dir
-  ```
-4. Run the simulation with your ELF file:
-  ```sh
-  ./Vaquila_testharness [elf file path]
-  ```
-5. To view waveforms, use GTKWave:
-  ```sh
-  gtkwave aquila_core.fst
-  ```
-6. In GTKWave, you can open `tb_verilator/test.gtkw` to quickly load commonly used signals.
-
+For detailed Verilator simulation steps, please refer to  
+[👉 Verilator Guide](verilator_guide.md)
 ---
+
 ## Software
 
 ### 1. OCR

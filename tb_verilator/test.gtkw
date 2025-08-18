@@ -1,65 +1,32 @@
 [*]
 [*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
-[*] Wed Aug 13 13:38:57 2025
+[*] Mon Aug 18 18:04:24 2025
 [*]
-[dumpfile] "/home/zichen/zichen/FreeRTOS/hw/tb_verilator/core_obj_dir/aquila_core.fst"
-[dumpfile_mtime] "Tue Aug 12 04:14:51 2025"
-[dumpfile_size] 20412939
-[savefile] "/home/zichen/zichen/FreeRTOS/hw/tb_verilator/test.gtkw"
-[timestart] 2189532
+[dumpfile] "/home/zichen/zichen/aquila_mp/tb_verilator/core_obj_dir/aquila_core.fst"
+[dumpfile_mtime] "Mon Aug 18 15:05:10 2025"
+[dumpfile_size] 75322463
+[savefile] "/home/zichen/zichen/aquila_mp/tb_verilator/test.gtkw"
+[timestart] 65088416
 [size] 2474 1536
-[pos] -51 -51
-*-6.541977 2189670 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] 1955 -230
+*-5.874344 65088540 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.aquila_testharness.
 [treeopen] top.aquila_testharness.Amo_arbiter.
-[treeopen] top.aquila_testharness.genblk1[0].
-[treeopen] top.aquila_testharness.genblk1[0].aquila_top.
-[treeopen] top.aquila_testharness.genblk1[0].aquila_top.D_Cache.
+[treeopen] top.aquila_testharness.aquila_core.
+[treeopen] top.aquila_testharness.aquila_core.D_Cache.
 [treeopen] top.aquila_testharness.genblk1[1].
 [treeopen] top.aquila_testharness.genblk1[1].aquila_top.
 [treeopen] top.aquila_testharness.genblk1[1].aquila_top.D_Cache.
 [treeopen] top.aquila_testharness.genblk1[2].
 [treeopen] top.aquila_testharness.genblk1[2].aquila_top.
+[treeopen] top.aquila_testharness.genblk1[2].aquila_top.D_Cache.
 [treeopen] top.aquila_testharness.genblk1[3].
 [treeopen] top.aquila_testharness.genblk1[3].aquila_top.
-[treeopen] top.aquila_testharness.L2cache.
 [sst_width] 356
 [signals_width] 356
 [sst_expanded] 1
 [sst_vpaned_height] 992
-@820
-top.aquila_testharness.mock_uart_0.uart_tx_fifo[7:0]
-@22
-top.aquila_testharness.genblk1[0].aquila_top.p_i_addr[31:0]
-top.aquila_testharness.genblk1[1].aquila_top.p_i_addr[31:0]
-top.aquila_testharness.genblk1[2].aquila_top.p_i_addr[31:0]
-top.aquila_testharness.genblk1[3].aquila_top.p_i_addr[31:0]
-top.aquila_testharness.genblk1[0].aquila_top.D_Cache.S[3:0]
-@28
-top.aquila_testharness.genblk1[0].aquila_top.D_Cache.p_strobe_r
-@22
-top.aquila_testharness.genblk1[0].aquila_top.D_Cache.p_addr_r[31:0]
-top.aquila_testharness.genblk1[1].aquila_top.D_Cache.S[3:0]
-@28
-top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_strobe_r
-@22
-top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_addr_r[31:0]
-@28
-top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_rw_r
-@22
-top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_data_o[31:0]
-top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_data_i[31:0]
-top.aquila_testharness.genblk1[2].aquila_top.D_Cache.S[3:0]
-@28
-top.aquila_testharness.genblk1[2].aquila_top.D_Cache.p_strobe_r
-@22
-top.aquila_testharness.genblk1[2].aquila_top.D_Cache.p_addr_r[31:0]
-top.aquila_testharness.genblk1[3].aquila_top.D_Cache.S[3:0]
-@28
-top.aquila_testharness.genblk1[3].aquila_top.D_Cache.p_strobe_r
-@22
-top.aquila_testharness.genblk1[3].aquila_top.D_Cache.p_addr_r[31:0]
 @800022
 #{top.aquila_testharness.coherence_unit.broadcast_strobe[0:3]} top.aquila_testharness.coherence_unit.broadcast_strobe[0] top.aquila_testharness.coherence_unit.broadcast_strobe[1] top.aquila_testharness.coherence_unit.broadcast_strobe[2] top.aquila_testharness.coherence_unit.broadcast_strobe[3]
 @28
@@ -78,7 +45,7 @@ top.aquila_testharness.coherence_unit.data_address[3][31:0]
 top.aquila_testharness.coherence_unit.current_invalidate_core_id[1:0]
 top.aquila_testharness.coherence_unit.current_rw_core_id[1:0]
 top.aquila_testharness.coherence_unit.current_rw_core_id[1:0]
-@23
+@22
 top.aquila_testharness.coherence_unit.S[3:0]
 @c00022
 #{top.aquila_testharness.coherence_unit.probe_strobe[0:3]} top.aquila_testharness.coherence_unit.probe_strobe[0] top.aquila_testharness.coherence_unit.probe_strobe[1] top.aquila_testharness.coherence_unit.probe_strobe[2] top.aquila_testharness.coherence_unit.probe_strobe[3]
@@ -112,5 +79,51 @@ top.aquila_testharness.Amo_arbiter.P_strobe_r[2]
 top.aquila_testharness.Amo_arbiter.P_strobe_r[3]
 @1001200
 -group_end
+@22
+top.aquila_testharness.aquila_core.p_i_addr[31:0]
+top.aquila_testharness.genblk1[1].aquila_top.p_i_addr[31:0]
+top.aquila_testharness.genblk1[2].aquila_top.p_i_addr[31:0]
+top.aquila_testharness.genblk1[3].aquila_top.p_i_addr[31:0]
+top.aquila_testharness.UART.DATAO[31:0]
+@820
+top.aquila_testharness.UART.DATAI[31:0]
+@28
+top.aquila_testharness.aquila_core.D_Cache.probe_on_curr_line
+top.aquila_testharness.aquila_core.D_Cache.probe_on_share_modify_line
+top.aquila_testharness.genblk1[1].aquila_top.D_Cache.probe_on_curr_line
+top.aquila_testharness.genblk1[1].aquila_top.D_Cache.probe_on_share_modify_line
+top.aquila_testharness.genblk1[2].aquila_top.D_Cache.probe_on_curr_line
+top.aquila_testharness.genblk1[2].aquila_top.D_Cache.probe_on_share_modify_line
+top.aquila_testharness.genblk1[3].aquila_top.D_Cache.probe_on_curr_line
+top.aquila_testharness.genblk1[3].aquila_top.D_Cache.probe_on_share_modify_line
+@22
+top.aquila_testharness.aquila_core.D_Cache.p_addr_r[31:0]
+top.aquila_testharness.aquila_core.D_Cache.p_data_o[31:0]
+@28
+top.aquila_testharness.aquila_core.D_Cache.p_ready_o
+top.aquila_testharness.aquila_core.D_Cache.p_strobe_r
+top.aquila_testharness.aquila_core.D_Cache.p_rw_r
+@23
+top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_addr_r[31:0]
+@22
+top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_data_o[31:0]
+@28
+top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_strobe_r
+top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_rw_r
+top.aquila_testharness.genblk1[1].aquila_top.D_Cache.p_ready_o
+@22
+top.aquila_testharness.genblk1[2].aquila_top.D_Cache.p_addr_r[31:0]
+top.aquila_testharness.genblk1[2].aquila_top.D_Cache.p_data_o[31:0]
+@28
+top.aquila_testharness.genblk1[2].aquila_top.D_Cache.p_strobe_r
+top.aquila_testharness.genblk1[2].aquila_top.D_Cache.p_rw_r
+top.aquila_testharness.genblk1[2].aquila_top.D_Cache.p_ready_o
+@22
+top.aquila_testharness.genblk1[3].aquila_top.D_Cache.p_addr_r[31:0]
+top.aquila_testharness.genblk1[3].aquila_top.D_Cache.p_data_o[31:0]
+@28
+top.aquila_testharness.genblk1[3].aquila_top.D_Cache.p_strobe_r
+top.aquila_testharness.genblk1[3].aquila_top.D_Cache.p_rw_r
+top.aquila_testharness.genblk1[3].aquila_top.D_Cache.p_ready_o
 [pattern_trace] 1
 [pattern_trace] 0

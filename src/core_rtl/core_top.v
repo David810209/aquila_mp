@@ -130,7 +130,7 @@ module core_top #(
 //  Fetch stage output signals
 // ------------------------------
 wire [XLEN-1 : 0] fet2dec_instr;
-wire [XLEN-1 : 0] fet2dec_pc;
+wire [XLEN-1 : 0] fet2dec_pc /* verilator public*/;
 wire              fet_branch_hit;
 wire              fet_branch_decision;
 
@@ -151,8 +151,8 @@ wire              dec_branch_hit;
 wire              dec_branch_decision;
 
 // Signals sent to Pipeline Control
-wire              dec2plc_load_hazard;
-wire              dec_unsupported_instr;
+wire              dec2plc_load_hazard /* verilator public*/;
+wire              dec_unsupported_instr /* verilator public*/;
 
 // Signals sent to Register File
 wire [ 4 : 0]     dec2rfu_rs1_addr;
@@ -285,7 +285,7 @@ wire [XLEN-1 : 0] wbk2csr_pc;
 // ---------------------------------
 // PipeLine Control (PLC) unit
 wire              plc2fet_flush;
-wire              plc2dec_flush;
+wire              plc2dec_flush /* verilator public*/;
 wire              plc2exe_flush;
 wire              plc2mem_flush;
 wire              plc2wbk_flush;
@@ -317,7 +317,7 @@ wire [XLEN-1 : 0] bpu_branch_target_addr;
 
 // Misc. signals
 wire              irq_enable;
-wire              irq_taken;
+wire              irq_taken /* verilator public*/;
 reg  [XLEN-1 : 0] nxt_unwb_PC;
 wire [ 1 : 0]     privilege_level;
 
@@ -362,7 +362,7 @@ wire stall_data_hazard; // The stall signal from Pipeline Control.
 (* mark_debug = "true" *) wire stall_from_exe;    // The stall signal from Execute.
 (* mark_debug = "true" *) wire stall_instr_fetch;
 (* mark_debug = "true" *) wire stall_data_fetch;
-(* mark_debug = "true" *) wire stall_pipeline;
+(* mark_debug = "true" *) wire stall_pipeline /* verilator public*/;
 
 assign stall_instr_fetch = (!code_ready_i);
 assign stall_data_fetch = (dS_nxt == d_WAIT) && (! exe_is_fencei);
