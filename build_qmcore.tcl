@@ -20,7 +20,7 @@ set origin_dir "."
 set proj_name "aquila_dram"
 
 # Create project
-create_project ${proj_name} ${origin_dir}/${proj_name} -part xc7k325tffg676-2
+create_project ${proj_name} ${origin_dir}/${proj_name} -part xc7k325tffg676-1
 
 # Set project properties
 set obj [current_project]

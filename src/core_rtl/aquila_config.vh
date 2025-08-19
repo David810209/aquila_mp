@@ -158,6 +158,3 @@
 // SIM_FNAME defines the RISC-V program path of an ELF file for simulation.
 // `define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/sw/matrix/test_0.elf"
 `define SIM_FNAME_0 "/home/zichen/zichen/aquila_mp/sw/rtos/rtos_run.elf"
-`define SIM_FNAME_1 "/home/zichen/zichen/aquila_mp/sw/rtos/rtos_run.elf"
-`define SIM_FNAME_2 "/home/zichen/zichen/aquila_mp/sw/rtos/rtos_run.elf"
-`define SIM_FNAME_3 "/home/zichen/zichen/aquila_mp/sw/rtos/rtos_run.elf"

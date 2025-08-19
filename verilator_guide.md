@@ -10,7 +10,14 @@ Open `aquila_config.vh` at line 58 and select the platform you want to simulate:
 
 ---
 
-## 2. Testbench Parameter Settings
+## 2. Set the Simulation File Path
+Open `aquila_config.vh`, set SIM_FNAME_0 to your ELF file path.
+
+- `define SIM_FNAME_0 "/path/to/your/elf/file.elf"`
+
+---
+
+## 3. Testbench Parameter Settings
 Edit `aquila_core_tb.cpp`:
 
 ### (1) Simulate UARTBoot or not
@@ -33,7 +40,7 @@ Edit `aquila_core_tb.cpp`:
 
 ---
 
-## 3. Usage Examples
+## 4. Usage Examples
 
 ### Case 1: Simulate UARTBoot and log waveform only after entering `main()` in RTOS
 ```cpp
@@ -51,7 +58,7 @@ Edit `aquila_core_tb.cpp`:
 
 ---
 
-## 4. Build and Run
+## 5. Build and Run
 ```bash
 make
 cd core_obj_dir/
@@ -60,7 +67,7 @@ cd core_obj_dir/
 
 ---
 
-## 5. View Waveform
+## 6. View Waveform
 ```bash
 gtkwave aquila_core.fst
 ```

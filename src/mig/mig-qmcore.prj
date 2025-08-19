@@ -8,7 +8,7 @@
     <DataDepth_En>1024</DataDepth_En>
     <LowPower_En>ON</LowPower_En>
     <XADC_En>Enabled</XADC_En>
-    <TargetFPGA>xc7k325t-ffg676/-2</TargetFPGA>
+    <TargetFPGA>xc7k325t-ffg676/-1</TargetFPGA>
     <Version>4.2</Version>
     <SystemClock>No Buffer</SystemClock>
     <ReferenceClock>Use System Clock</ReferenceClock>
